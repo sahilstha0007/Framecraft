@@ -17,6 +17,7 @@ import ContactForm from "@/components/ContactForm";
 import ScrollReveal from "@/components/ScrollReveal";
 import TrendingNow from "@/components/TrendingNow";
 import PickedForYou from "@/components/PickedForYou";
+import MarketplacePulse from "@/components/MarketplacePulse";
 import dynamic from "next/dynamic";
 
 // Shared placeholder for the assembly section — shown both while the chunk
@@ -397,6 +398,9 @@ export default function Home() {
 
       {/* ── PICKED FOR YOU: browsing-history recommendations ── */}
       <PickedForYou />
+
+      {/* ── MARKETPLACE PULSE: fresh arrivals + live activity feed ── */}
+      <MarketplacePulse />
 
       <MorphDivider />
 

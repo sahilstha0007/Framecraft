@@ -13,6 +13,7 @@ import { bookingsRoutes, myRequestsRoutes } from "./routes/bookings";
 import { contactRoutes } from "./routes/contact";
 import { newsletterRoutes } from "./routes/newsletter";
 import { adminRoutes, adminAnalyticsRoutes } from "./routes/admin";
+import { activityRoutes } from "./routes/activity";
 import { authRoutes, bootstrapSellerRoutes } from "./routes/auth";
 import { usersRoutes } from "./routes/users";
 import { productsRoutes } from "./routes/products";
@@ -99,6 +100,7 @@ export const app = new Elysia()
     ],
   }))
   .use(healthRoutes)
+  .use(activityRoutes)
   .use(framesRoutes)
   .use(galleryRoutes)
   .use(servicesRoutes)

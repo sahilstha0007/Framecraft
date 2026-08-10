@@ -48,7 +48,12 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 
 ## Loop 9 — Marketplace pulse (live activity + fresh arrivals)
 
-(placeholder — filled in below)
+**What shipped**
+- `GET /api/activity`: fresh arrivals (newest sellable products), recent
+  auction wins (winner names), recent reviews, new sellers — no customer PII.
+- Homepage: MarketplacePulse section — fresh-arrivals grid (ProductCards) +
+  a LIVE activity feed (wins / reviews / new sellers with time-ago chips).
+- i18n en/ne; +1 test (arrivals, wins, reviews and sellers all surfaced).
 
 ## Loop 8 — SEO & metadata power-up
 

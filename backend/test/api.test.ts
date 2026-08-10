@@ -2010,3 +2010,75 @@ describe("seller profile detail", () => {
     expect(missing.status).toBe(404);
   });
 });
+
+describe("marketplace pulse", () => {
+  test("activity surfaces fresh arrivals, wins, reviews and new sellers", async () => {
+    // A seller with a fresh product + a fresh review, and an auction with a winner.
+    const vendor = await registerRole("Pulse Vendor", "pulse-vendor@test.com", "seller", "Pulse Shop");
+    const created = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Pulse Fresh Piece",
+        category: "Art",
+        price: 1200,
+        image: "https://images.unsplash.com/photo-x",
+        description: "Fresh arrival test",
+        stock: 5,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+    const pid = Number(((await created.json()) as { id: number }).id);
+
+    const buyer = await registerCustomer("Pulse Buyer", "pulse-buyer@test.com");
+    await customerReq(buyer, `/api/products/${pid}/reviews`, {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ rating: 5, body: "Lovely piece" }),
+    });
+
+    // Auction: bid + seller ends early -> winner locked in.
+    const auction = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Pulse Auction Lot",
+        category: "Art",
+        price: 0,
+        image: "https://images.unsplash.com/photo-x",
+        description: "Pulse auction",
+        stock: 1,
+        featured: false,
+        auction: true,
+        startingBid: 1000,
+        minIncrement: 100,
+        endsAt: isoInHours(48),
+      }),
+    });
+    const auctionId = Number(((await auction.json()) as { id: number }).id);
+    const bid = await customerReq(buyer, `/api/products/${auctionId}/bid`, {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ amount: 1100 }),
+    });
+    expect(bid.status).toBe(201);
+    const ended = await customerReq(vendor.cookie, `/api/seller/products/${auctionId}/end`, {
+      method: "POST",
+    });
+    expect(ended.status).toBe(200);
+
+    const res = await get("/api/activity");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      freshArrivals: { id: number; name: string }[];
+      recentWins: { productId: number; winnerName: string | null }[];
+      recentReviews: { productId: number; rating: number }[];
+      newSellers: { shopName: string | null }[];
+    };
+    expect(body.freshArrivals.some((p) => p.id === pid)).toBe(true);
+    expect(body.recentWins.some((w) => w.productId === auctionId)).toBe(true);
+    expect(body.recentReviews.some((r) => r.productId === pid && r.rating === 5)).toBe(true);
+    expect(body.newSellers.some((s) => s.shopName === "Pulse Shop")).toBe(true);
+  });
+});
