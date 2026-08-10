@@ -1,0 +1,35 @@
+# dependencies
+node_modules
+
+# next.js
+frontend/.next/
+frontend/out/
+
+# build output
+dist
+out
+
+# sqlite databases (backend runtime data)
+backend/data/*.db
+backend/data/*.db-*
+
+# dotenv environment variable files
+.env
+.env.*.local
+
+# logs
+logs
+*.log
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# coverage
+coverage
+*.lcov
+
+# editor / OS
+.idea
+.DS_Store

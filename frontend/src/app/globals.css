@@ -1,0 +1,366 @@
+@font-face {
+  font-family: 'Dirtyline';
+  src: url('https://fonts.cdnfonts.com/s/15011/Dirtyline36DaysofType.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Devanagari (Nepali locale) ──
+   The Latin display/body faces (Playfair Display, DM Sans) have no Devanagari
+   glyphs. When the locale is `ne`, swap the typeface variables to the Devanagari
+   face loaded by next/font — every `font-heading` / `font-body` / `font-mono`
+   utility resolves through these variables, so the whole app re-skins at once.
+   The `html[lang="ne"]` attribute selector outranks the next/font variable
+   classes applied on the same element. */
+html[lang="ne"] {
+  --font-heading: var(--font-devanagari), "Playfair Display", Georgia, serif;
+  --font-body: var(--font-devanagari), "DM Sans", system-ui, sans-serif;
+  --font-mono: var(--font-devanagari), "DM Mono", ui-monospace, monospace;
+}
+
+html[lang="ne"] body {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-cream-50: #fdfbf7;
+  --color-cream-100: #faf6ed;
+  --color-cream-150: #f5efe3;
+  --color-cream-200: #f0e8d5;
+  --color-cream-300: #e5dbc0;
+  --color-cream-400: #d4c7a7;
+  --color-cream-500: #c4b58e;
+  --color-cream-600: #b09f75;
+  --color-cream-700: #9a8a5b;
+
+  --color-walnut-50: #f5ede4;
+  --color-walnut-100: #e8d5c0;
+  --color-walnut-200: #d4b893;
+  --color-walnut-300: #c09b6e;
+  --color-walnut-400: #a8804f;
+  --color-walnut-500: #8b663a;
+  --color-walnut-600: #6e4f2e;
+  --color-walnut-700: #543c22;
+  --color-walnut-800: #3d2a18;
+  --color-walnut-900: #2a1c10;
+
+  --color-mahogany-300: #8b5e3c;
+  --color-mahogany-400: #704a2e;
+  --color-mahogany-500: #5a3a22;
+  --color-mahogany-600: #472d1a;
+  --color-mahogany-700: #362214;
+
+  --color-charcoal-50: #f2f2f2;
+  --color-charcoal-100: #d9d9d9;
+  --color-charcoal-200: #bfbfbf;
+  --color-charcoal-300: #a6a6a6;
+  --color-charcoal-400: #8c8c8c;
+  --color-charcoal-500: #737373;
+  --color-charcoal-600: #595959;
+  --color-charcoal-700: #404040;
+  --color-charcoal-800: #262626;
+  --color-charcoal-850: #1a1a1a;
+  --color-charcoal-900: #121212;
+
+  --color-gold-50: #fbf6e8;
+  --color-gold-100: #f5e8c4;
+  --color-gold-200: #edd79c;
+  --color-gold-300: #e4c675;
+  --color-gold-400: #d4a838;
+  --color-gold-500: #bf9330;
+  --color-gold-600: #a37d28;
+  --color-gold-700: #866420;
+  --color-gold-800: #6b4e18;
+  --color-gold-900: #4d3811;
+
+  --font-heading: "Playfair Display", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+
+  --font-instrument: "Instrument Serif", serif;
+  --font-barlow: "Barlow", sans-serif;
+  --font-dirtyline: "Dirtyline", sans-serif;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-fade-in: fadeIn 0.6s ease-out forwards;
+  --animate-slide-up: slideUp 0.6s ease-out forwards;
+  --animate-draw-line: drawLine 1.5s ease-out forwards;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes drawLine {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+}
+
+@layer base {
+  /* Native CSS smooth-scroll must stay OFF — Lenis drives scrolling
+     programmatically and the two fight each other, causing jank. */
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Native UI (date picker, form controls, scrollbars, <select> popup) should
+     follow the active theme, not the OS. next-themes toggles the `dark` class
+     on <html>, so keying off it here keeps everything consistent. */
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--color-charcoal-800);
+    background-color: var(--color-cream-50);
+    font-weight: 350;
+    letter-spacing: 0.01em;
+  }
+
+  .dark body,
+  body.dark {
+    color: var(--color-cream-100);
+    background-color: var(--color-charcoal-900);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  /* Refined heading sizes */
+  h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1.1; }
+  h2 { font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.15; }
+  h3 { font-size: clamp(1.35rem, 2.5vw, 1.75rem); line-height: 1.25; }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .font-mono-caption {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-mahogany-500);
+  }
+  .dark .eyebrow {
+    color: var(--color-gold-400);
+  }
+
+  .frame-border {
+    position: relative;
+    border: 1px solid transparent;
+  }
+  .frame-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid var(--color-cream-300);
+    pointer-events: none;
+  }
+  .dark .frame-border::before {
+    border-color: var(--color-charcoal-700);
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-cream-400);
+  border-radius: 2px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-charcoal-600);
+}
+
+/* ── Lenis smooth scroll ──
+   Official Lenis 1.3.x CSS. Previously this file set `html.lenis { overflow:
+   hidden }` while Lenis was RUNNING — that locks native scrolling entirely
+   (Lenis only smooths wheel input, touch/native fallback still relies on the
+   browser), hides the custom styled scrollbar, and leaves the page frozen if
+   Lenis ever fails to start. Lenis only clips overflow in its stopped state. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical],
+.lenis [data-lenis-prevent-horizontal] {
+  overscroll-behavior: contain;
+}
+
+/* Selection */
+::selection {
+  background: var(--color-gold-200);
+  color: var(--color-charcoal-900);
+}
+.dark ::selection {
+  background: var(--color-gold-700);
+  color: var(--color-cream-100);
+}
+
+/* ── Reduced motion: kill CSS-driven animation for users who opt out ──
+   (JS-driven framer-motion is handled globally via MotionConfig
+   reducedMotion="user" in the root layout.) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Glass utility */
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dark .glass {
+  background: rgba(18, 18, 18, 0.08);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Apple-style frosted glass nav ── */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.dark .glass-nav {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Section alternating backgrounds with smoother transitions */
+.section-light {
+  background-color: var(--color-cream-50);
+  transition: background-color 0.3s ease;
+}
+.section-warm {
+  background-color: var(--color-cream-100);
+  transition: background-color 0.3s ease;
+}
+.section-deep {
+  background-color: var(--color-cream-150);
+  transition: background-color 0.3s ease;
+}
+.dark .section-light {
+  background-color: var(--color-charcoal-900);
+}
+.dark .section-warm {
+  background-color: var(--color-charcoal-850);
+}
+.dark .section-deep {
+  background-color: var(--color-charcoal-800);
+}
+
+/* ── MicroVisuals hero ── */
+
+.liquid-glass {
+  background: rgba(255,255,255,0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.45) 0%,
+    rgba(255,255,255,0.15) 20%,
+    rgba(255,255,255,0)    40%,
+    rgba(255,255,255,0)    60%,
+    rgba(255,255,255,0.15) 80%,
+    rgba(255,255,255,0.45) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.liquid-glass-strong {
+  background: rgba(255,255,255,0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border: none;
+  box-shadow: 4px 4px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.15);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass-strong::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.5) 0%,
+    rgba(255,255,255,0.2) 20%,
+    rgba(255,255,255,0)   40%,
+    rgba(255,255,255,0)   60%,
+    rgba(255,255,255,0.2) 80%,
+    rgba(255,255,255,0.5) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
