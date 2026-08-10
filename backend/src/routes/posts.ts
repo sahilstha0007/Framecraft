@@ -46,8 +46,11 @@ export const postsRoutes = new Elysia()
       values.push(Number(query.author));
       where.push(`p.seller_id = $${values.length}`);
     }
+    // Default 60 for feeds; sitemap requests pass a larger explicit limit.
+    const rawLimit = Number(query.limit);
+    const limit = Number.isInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 1000) : 60;
     const rows = await all(
-      `${POST_SELECT} WHERE ${where.join(" AND ")} ORDER BY p.created_at DESC LIMIT 60`,
+      `${POST_SELECT} WHERE ${where.join(" AND ")} ORDER BY p.created_at DESC LIMIT ${limit}`,
       values
     );
     return rows.map(toPost);

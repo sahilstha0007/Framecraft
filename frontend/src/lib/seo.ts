@@ -3,6 +3,7 @@
  * dynamic pages (metadata + JSON-LD), and structured-data builders.
  * Everything is failure-tolerant — SEO must never take down a page.
  */
+import { cache } from "react";
 
 // Server-side fetches prefer the internal API URL (compose service name) when
 // set; NEXT_PUBLIC_API_URL is baked for the browser and may not resolve inside
@@ -33,7 +34,6 @@ export interface SeoPost {
   title: string;
   slug: string;
   excerpt?: string | null;
-  content?: string;
   coverImage?: string | null;
   createdAt: string;
   authorName?: string | null;
@@ -63,20 +63,24 @@ async function fetchJson<T>(path: string): Promise<T | null> {
   }
 }
 
-export const fetchProduct = (id: string | number) =>
-  fetchJson<SeoProduct>(`/api/products/${id}`);
+// Memoized per request so generateMetadata and the page body share one fetch.
+export const fetchProduct = cache((id: string | number) =>
+  fetchJson<SeoProduct>(`/api/products/${id}`)
+);
 
-export const fetchPost = (slug: string) =>
-  fetchJson<SeoPost>(`/api/posts/${slug}`);
+export const fetchPost = cache((slug: string) =>
+  fetchJson<SeoPost>(`/api/posts/${slug}`)
+);
 
-export const fetchSeller = (id: string | number) =>
-  fetchJson<SeoSeller>(`/api/sellers/${id}`);
+export const fetchSeller = cache((id: string | number) =>
+  fetchJson<SeoSeller>(`/api/sellers/${id}`)
+);
 
-export const fetchAllProducts = () => fetchJson<SeoProduct[]>("/api/products");
+export const fetchAllProducts = cache(() => fetchJson<SeoProduct[]>("/api/products"));
 
-export const fetchAllPosts = () => fetchJson<SeoPost[]>("/api/posts");
+export const fetchAllPosts = cache(() => fetchJson<SeoPost[]>("/api/posts?limit=1000"));
 
-export const fetchAllSellers = () => fetchJson<SeoSeller[]>("/api/sellers");
+export const fetchAllSellers = cache(() => fetchJson<SeoSeller[]>("/api/sellers"));
 
 /* ── JSON-LD builders ───────────────────────────────────────────────────── */
 
@@ -155,7 +159,6 @@ export const organizationJsonLd: Record<string, unknown> = {
   "@type": "Organization",
   name: "FrameCraft",
   url: SITE_URL,
-  logo: `${SITE_URL}/logo.png`,
   foundingDate: "1999",
   address: {
     "@type": "PostalAddress",
