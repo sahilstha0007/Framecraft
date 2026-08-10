@@ -6,6 +6,7 @@ import {
   Eye,
   Gavel,
   Loader2,
+  Package,
   ShoppingBag,
   Star,
   Store,
@@ -36,7 +37,7 @@ interface AdminAnalyticsData {
   orderStatuses: { status: string; count: number }[];
 }
 
-function RevenueBars({ data }: { data: { day: string; revenue: number }[] }) {
+function RevenueBars({ data, locale }: { data: { day: string; revenue: number }[]; locale: string }) {
   const max = Math.max(...data.map((d) => d.revenue), 1);
   return (
     <div className="flex items-end gap-[3px] h-28">
@@ -44,7 +45,7 @@ function RevenueBars({ data }: { data: { day: string; revenue: number }[] }) {
         <div
           key={d.day}
           className="group relative flex-1 flex flex-col justify-end"
-          title={`${d.day} · ${formatNPR(d.revenue, "en")}`}
+          title={`${d.day} · ${formatNPR(d.revenue, locale)}`}
         >
           <div
             className="w-full transition-[height] duration-500 group-hover:opacity-70"
@@ -105,7 +106,7 @@ export default function AdminAnalytics() {
     { label: t("anUsers"), value: String(k.userCount), icon: Users },
     { label: t("anSellers"), value: String(k.sellerCount), icon: Store },
     { label: t("anProducts"), value: String(k.productCount), icon: Boxes },
-    { label: t("anAuctions"), value: String(k.activeAuctions), icon: Gavel },
+    { label: t("anAuctions"), value: String(k.activeAuctions), icon: Package },
     { label: t("anBids"), value: String(k.totalBids), icon: Gavel },
     { label: t("anReviews"), value: String(k.totalReviews), icon: Star },
     { label: t("anViews"), value: String(k.views14d), icon: Eye },
@@ -135,7 +136,7 @@ export default function AdminAnalytics() {
         <div className="flex items-center gap-1.5 mb-4 font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60">
           <TrendingUp size={13} className="text-gold-400/70" /> {t("anRevenueTrend")}
         </div>
-        <RevenueBars data={data.revenueByDay} />
+        <RevenueBars data={data.revenueByDay} locale={locale} />
         <div className="mt-2 flex justify-between font-mono text-[0.5rem] tracking-wider uppercase text-cream-500/40">
           <span>{data.revenueByDay[0]?.day ?? ""}</span>
           <span>{data.revenueByDay[data.revenueByDay.length - 1]?.day ?? ""}</span>
@@ -177,6 +178,9 @@ export default function AdminAnalytics() {
             {t("anCategories")}
           </h3>
           <div className="border border-charcoal-700/70 divide-y divide-charcoal-800">
+            {data.categories.length === 0 && (
+              <div className="p-5 text-sm text-cream-500/50">{t("anNoSales")}</div>
+            )}
             {data.categories.map((c) => (
               <div key={c.category} className="p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -203,6 +207,11 @@ export default function AdminAnalytics() {
         <h3 className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60 mb-3">
           {t("anOrderStatuses")}
         </h3>
+        {data.orderStatuses.length === 0 && (
+          <div className="border border-charcoal-700/70 bg-charcoal-900/50 p-5 text-sm text-cream-500/50">
+            {t("anNoSales")}
+          </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {data.orderStatuses.map((s) => (
             <div key={s.status} className="border border-charcoal-700/70 bg-charcoal-900/50 p-4">

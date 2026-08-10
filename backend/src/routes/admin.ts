@@ -7,9 +7,11 @@ import { requireAdmin } from "./auth";
 export const adminAnalyticsRoutes = new Elysia()
   .onBeforeHandle(requireAdmin)
   .get("/api/admin/analytics", async () => {
-    const SAFE_PID =
-      "CASE WHEN item ? 'productId' AND (item->>'productId') ~ '^[0-9]+$' " +
-      "THEN (item->>'productId')::int ELSE -1 END";
+    // Defensive item id extraction (alias-parameterized): a malformed item is
+    // treated as -1 so one bad historical order can't 500 the dashboard.
+    const safePid = (alias: string) =>
+      `CASE WHEN ${alias} ? 'productId' AND (${alias}->>'productId') ~ '^[0-9]+$' ` +
+      `THEN (${alias}->>'productId')::int ELSE -1 END`;
     const ITEMS_JSON =
       "CASE WHEN o.items IS NULL OR o.items = '' THEN '[]'::jsonb ELSE o.items::jsonb END";
 
@@ -55,10 +57,14 @@ export const adminAnalyticsRoutes = new Elysia()
        JOIN orders o
          ON o.created_at >= to_char(now() - interval '90 days', 'YYYY-MM-DD HH24:MI:SS')
          AND o.status <> 'cancelled'
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements(${ITEMS_JSON}) item2
+           WHERE ${safePid("item2")} = p.id
+         )
        JOIN LATERAL (
          SELECT SUM((item->>'price')::numeric * (item->>'quantity')::numeric) AS rev
          FROM jsonb_array_elements(${ITEMS_JSON}) item
-         WHERE ${SAFE_PID} = p.id
+         WHERE ${safePid("item")} = p.id
        ) att ON true
        GROUP BY u.id, u.name, u.shop_name
        ORDER BY revenue DESC
@@ -81,7 +87,7 @@ export const adminAnalyticsRoutes = new Elysia()
          CROSS JOIN LATERAL jsonb_array_elements(${ITEMS_JSON}) item
          WHERE o.status <> 'cancelled'
            AND o.created_at >= to_char(now() - interval '90 days', 'YYYY-MM-DD HH24:MI:SS')
-           AND ${SAFE_PID} = p.id
+           AND ${safePid("item")} = p.id
        ) att ON true
        GROUP BY p.category
        ORDER BY revenue DESC, products DESC`
