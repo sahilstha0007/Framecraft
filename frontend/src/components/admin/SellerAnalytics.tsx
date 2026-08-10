@@ -43,17 +43,11 @@ interface AnalyticsData {
   ordersByDay: { day: string; orders: number; revenue: number }[];
 }
 
-/** Fill a 14-day window so charts stay continuous even on quiet days. */
-function fillWindow(entries: { day: string; value: number }[]): { day: string; value: number }[] {
-  const byDay = new Map(entries.map((e) => [e.day, e.value]));
-  const out: { day: string; value: number }[] = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400_000).toISOString().slice(0, 10);
-    out.push({ day: d, value: byDay.get(d) ?? 0 });
-  }
-  return out;
-}
-
+/**
+ * The server returns a contiguous 14-day series (DB timezone), so the chart
+ * stays continuous even on quiet days and never re-keys dates client-side
+ * (which could shift bars across timezones).
+ */
 function MiniBars({ data, color }: { data: { day: string; value: number }[]; color: string }) {
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
@@ -93,11 +87,11 @@ export default function SellerAnalytics() {
   }, []);
 
   const viewsSeries = useMemo(
-    () => (data ? fillWindow(data.viewsByDay.map((v) => ({ day: v.day, value: v.views }))) : []),
+    () => (data ? data.viewsByDay.map((v) => ({ day: v.day, value: v.views })) : []),
     [data]
   );
   const salesSeries = useMemo(
-    () => (data ? fillWindow(data.ordersByDay.map((o) => ({ day: o.day, value: o.orders }))) : []),
+    () => (data ? data.ordersByDay.map((o) => ({ day: o.day, value: o.orders })) : []),
     [data]
   );
 

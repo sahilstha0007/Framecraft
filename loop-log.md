@@ -58,10 +58,20 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
   cards, SVG 14-day bar chart with Views/Sales toggle, top-products table.
 - i18n en/ne; +3 tests (revenue aggregation, cross-seller isolation, 403).
 
+**Review fixes**
+- Bounded fetch: lifetime totals via SQL aggregates (LATERAL SUM); only the
+  last 90 days of orders are loaded for top products + sales trend.
+- Contiguous 14-day series generated server-side (`generate_series`, DB
+  timezone) — client no longer invents day keys (UTC mismatch removed).
+- Defensive item parsing: SAFE_PID guards malformed productIds; invalid/empty
+  items JSON falls back to `[]` instead of 500ing the endpoint.
+- `activeProducts` now counts only live auctions (status = 'active').
+- Items parsed once per order (single pass for revenue + daily totals).
+
 **Notes**
 - Cancelled orders are excluded from revenue/order counts.
 - `viewed_at`/`created_at` are TEXT timestamps — cast to timestamp for day
-  grouping; the 14-day trend window is filled client-side for continuity.
+  grouping; top products rank by the last 90 days, lifetime totals by SQL.
 
 ## Loop 5 — Trending now & picked for you (data-driven homepage)
 

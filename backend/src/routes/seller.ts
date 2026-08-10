@@ -118,6 +118,21 @@ export const sellerRoutes = new Elysia()
       )
       /* ── analytics: revenue, traffic & engagement for the seller's shop ── */
       .get("/api/seller/analytics", async ({ user }: any) => {
+        // Defensive item id extraction: an item without a numeric productId is
+        // treated as -1 (never matches), so one malformed historical order can't
+        // take down the whole dashboard.
+        const SAFE_PID =
+          "CASE WHEN item ? 'productId' AND (item->>'productId') ~ '^[0-9]+$' " +
+          "THEN (item->>'productId')::int ELSE -1 END";
+        const ITEMS_JSON =
+          "CASE WHEN o.items IS NULL OR o.items = '' THEN '[]'::jsonb ELSE o.items::jsonb END";
+        // An order is the seller's if any line item belongs to one of their products.
+        const SELLER_ORDER_EXISTS = `EXISTS (
+          SELECT 1 FROM jsonb_array_elements(${ITEMS_JSON}) item
+          JOIN products p ON p.id = ${SAFE_PID}
+          WHERE p.seller_id = $1
+        )`;
+
         const productRows = await all<
           {
             id: number;
@@ -126,13 +141,14 @@ export const sellerRoutes = new Elysia()
             price: number;
             stock: number;
             auction: number;
+            status: string;
             bid_count: number;
             avg_rating: number | null;
             review_count: number;
             views: number;
           }
         >(
-          `SELECT p.id, p.name, p.image, p.price, p.stock, p.auction, p.bid_count,
+          `SELECT p.id, p.name, p.image, p.price, p.stock, p.auction, p.status, p.bid_count,
                   rv.avg_rating, rv.review_count,
                   COALESCE(v.views_14d, 0)::int AS views
            FROM products p
@@ -152,21 +168,7 @@ export const sellerRoutes = new Elysia()
           [user.id]
         );
         const productIds = productRows.map((p) => p.id);
-
-        // Every non-cancelled order containing any of this seller's items.
-        const orderRows = await all<{ id: number; created_at: string; items: string; status: string }>(
-          `SELECT o.id, o.created_at, o.items, o.status
-           FROM orders o
-           WHERE o.status <> 'cancelled'
-             AND EXISTS (
-               SELECT 1 FROM jsonb_array_elements(o.items::jsonb) item
-               JOIN products p ON p.id = (item->>'productId')::int
-               WHERE p.seller_id = $1
-             )
-           ORDER BY o.created_at DESC`,
-          [user.id]
-        );
-
+        const isOwn = (id: number) => productIds.includes(id);
         const parseItems = (raw: string): { productId: number; price: number; quantity: number }[] => {
           try {
             return JSON.parse(String(raw ?? "[]"));
@@ -175,18 +177,52 @@ export const sellerRoutes = new Elysia()
           }
         };
 
-        // Attribute revenue per product from the order line items.
+        // Lifetime totals via SQL aggregates — never load the full history.
+        const totals = await all<{ order_count: number; total_revenue: number }>(
+          `SELECT COUNT(*)::int AS order_count,
+                  COALESCE(SUM(sub.total), 0)::float8 AS total_revenue
+           FROM orders o
+           JOIN LATERAL (
+             SELECT SUM((item->>'price')::numeric * (item->>'quantity')::numeric) AS total
+             FROM jsonb_array_elements(${ITEMS_JSON}) item
+             JOIN products p ON p.id = ${SAFE_PID} AND p.seller_id = $1
+           ) sub ON true
+           WHERE o.status <> 'cancelled' AND ${SELLER_ORDER_EXISTS}`,
+          [user.id]
+        );
+
+        // Recent orders (90 days) power the top-products ranking and the 14-day
+        // sales trend — the fetch stays bounded as the shop grows.
+        const recent = await all<{ created_at: string; items: string }>(
+          `SELECT o.created_at, o.items
+           FROM orders o
+           WHERE o.created_at >= to_char(now() - interval '90 days', 'YYYY-MM-DD HH24:MI:SS')
+             AND o.status <> 'cancelled'
+             AND ${SELLER_ORDER_EXISTS}`,
+          [user.id]
+        );
+
+        // Single parse per order; attribute revenue + units to this seller's
+        // products only (multi-seller orders split correctly).
         const revenueByProduct = new Map<number, { revenue: number; units: number }>();
-        for (const o of orderRows) {
-          for (const it of parseItems(o.items)) {
-            if (productIds.includes(it.productId)) {
-              const amount = Number(it.price) * Number(it.quantity);
-              const cur = revenueByProduct.get(it.productId) ?? { revenue: 0, units: 0 };
-              cur.revenue += amount;
-              cur.units += Number(it.quantity);
-              revenueByProduct.set(it.productId, cur);
-            }
+        const byDay = new Map<string, { orders: number; revenue: number }>();
+        for (const o of recent) {
+          const items = parseItems(o.items);
+          const day = String(o.created_at).slice(0, 10);
+          const dayCur = byDay.get(day) ?? { orders: 0, revenue: 0 };
+          let orderRevenue = 0;
+          for (const it of items) {
+            if (!isOwn(it.productId)) continue;
+            const amount = Number(it.price) * Number(it.quantity);
+            const cur = revenueByProduct.get(it.productId) ?? { revenue: 0, units: 0 };
+            cur.revenue += amount;
+            cur.units += Number(it.quantity);
+            revenueByProduct.set(it.productId, cur);
+            orderRevenue += amount;
           }
+          dayCur.orders += 1;
+          dayCur.revenue += orderRevenue;
+          byDay.set(day, dayCur);
         }
 
         const topProducts = productRows
@@ -206,52 +242,45 @@ export const sellerRoutes = new Elysia()
           .sort((a, b) => b.revenue - a.revenue || b.views - a.views)
           .slice(0, 5);
 
-        // 14-day traffic trend on this seller's products.
+        // 14-day traffic trend — contiguous series in the DB timezone so the
+        // client never has to invent day keys (avoids UTC/local misalignment).
         const viewsByDay = await all<{ day: string; views: number }>(
-          `SELECT to_char(viewed_at::timestamp, 'YYYY-MM-DD') AS day, COUNT(*)::int AS views
-           FROM product_views
-           WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
-             AND viewed_at >= to_char(now() - interval '13 days', 'YYYY-MM-DD HH24:MI:SS')
-           GROUP BY day ORDER BY day`,
+          `SELECT to_char(d.day, 'YYYY-MM-DD') AS day, COUNT(pv.id)::int AS views
+           FROM generate_series(now() - interval '13 days', now(), interval '1 day') AS d(day)
+           LEFT JOIN product_views pv
+             ON to_char(pv.viewed_at::timestamp, 'YYYY-MM-DD') = to_char(d.day, 'YYYY-MM-DD')
+             AND pv.product_id IN (SELECT id FROM products WHERE seller_id = $1)
+           GROUP BY d.day ORDER BY d.day`,
           [user.id]
         );
 
-        // 14-day sales trend (only days inside the window).
-        const cutoff = new Date(Date.now() - 13 * 86400_000).toISOString().slice(0, 10);
-        const byDay = new Map<string, { orders: number; revenue: number }>();
-        for (const o of orderRows) {
-          const day = String(o.created_at).slice(0, 10);
-          if (day < cutoff) continue;
+        // 14-day sales trend: align to the same contiguous window as views.
+        const dayKeys = viewsByDay.map((v) => v.day);
+        const ordersByDay = dayKeys.map((day) => {
           const cur = byDay.get(day) ?? { orders: 0, revenue: 0 };
-          cur.orders += 1;
-          let rev = 0;
-          for (const it of parseItems(o.items)) {
-            if (productIds.includes(it.productId)) rev += Number(it.price) * Number(it.quantity);
-          }
-          cur.revenue += rev;
-          byDay.set(day, cur);
-        }
+          return { day, ...cur };
+        });
 
         const rated = productRows.filter((p) => p.avg_rating != null);
         const summary = {
-          totalRevenue: Math.round(
-            [...revenueByProduct.values()].reduce((s, v) => s + v.revenue, 0) * 100
-          ) / 100,
-          orderCount: orderRows.length,
+          totalRevenue: Math.round(Number(totals[0]?.total_revenue ?? 0) * 100) / 100,
+          orderCount: Number(totals[0]?.order_count ?? 0),
           totalViews: productRows.reduce((s, p) => s + Number(p.views), 0),
           totalBids: productRows.reduce((s, p) => s + Number(p.bid_count), 0),
           avgRating: rated.length
             ? Math.round((rated.reduce((s, p) => s + Number(p.avg_rating), 0) / rated.length) * 10) / 10
             : null,
           reviewCount: productRows.reduce((s, p) => s + Number(p.review_count), 0),
-          activeProducts: productRows.filter((p) => p.auction || Number(p.stock) > 0).length,
+          activeProducts: productRows.filter(
+            (p) => (p.auction ? p.status === "active" : Number(p.stock) > 0)
+          ).length,
         };
 
         return {
           summary,
           topProducts,
           viewsByDay,
-          ordersByDay: [...byDay.entries()].map(([day, v]) => ({ day, ...v })),
+          ordersByDay,
         };
       })
       /* ── own blog posts (including drafts) ── */
