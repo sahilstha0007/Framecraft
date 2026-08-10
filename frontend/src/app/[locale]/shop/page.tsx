@@ -22,7 +22,9 @@ function ShopBrowser() {
 
   // Initial state comes from the URL so filters survive navigation/sharing.
   const [activeCategory, setActiveCategory] = useState(
-    () => searchParams.get("category") ?? "All"
+    // Default to the translated "all" so first load matches every product in
+    // any locale (a literal "All" would never equal t("all") in Nepali).
+    () => searchParams.get("category") ?? t("all")
   );
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [auctionOnly, setAuctionOnly] = useState(() => searchParams.get("auction") === "1");
@@ -43,7 +45,7 @@ function ShopBrowser() {
   useEffect(() => {
     const id = window.setTimeout(() => {
       const p = new URLSearchParams();
-      if (activeCategory !== "All") p.set("category", activeCategory);
+      if (activeCategory !== t("all")) p.set("category", activeCategory);
       if (searchQuery.trim()) p.set("q", searchQuery.trim());
       if (auctionOnly) p.set("auction", "1");
       if (sort) p.set("sort", sort);
@@ -62,6 +64,7 @@ function ShopBrowser() {
     minPrice,
     maxPrice,
     inStockOnly,
+    t,
     router,
     pathname,
   ]);

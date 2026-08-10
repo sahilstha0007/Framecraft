@@ -70,12 +70,14 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
       where.push("((p.auction = 1 AND p.status = 'active') OR p.stock > 0)");
     }
     const effectivePrice = "COALESCE(p.current_bid, p.price)";
-    if (query.minPrice != null && query.minPrice !== "") {
-      values.push(Number(query.minPrice));
+    const minNum = Number(query.minPrice);
+    if (query.minPrice != null && query.minPrice !== "" && !Number.isNaN(minNum)) {
+      values.push(minNum);
       where.push(`${effectivePrice} >= $${values.length}`);
     }
-    if (query.maxPrice != null && query.maxPrice !== "") {
-      values.push(Number(query.maxPrice));
+    const maxNum = Number(query.maxPrice);
+    if (query.maxPrice != null && query.maxPrice !== "" && !Number.isNaN(maxNum)) {
+      values.push(maxNum);
       where.push(`${effectivePrice} <= $${values.length}`);
     }
     const SORTS: Record<string, string> = {
