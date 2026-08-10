@@ -55,7 +55,7 @@ beforeAll(async () => {
     DROP TABLE IF EXISTS sessions, users, orders, products, custom_quotes,
       newsletter_subscribers, contacts, bookings, mat_options, glass_types, team_members,
       testimonials, services, gallery_items, frames, bids, posts, follows,
-      product_likes, comments, product_reviews CASCADE;
+      product_likes, comments, product_reviews, order_events CASCADE;
   `);
   await migrate();
 
@@ -1556,5 +1556,45 @@ describe("reviews & ratings", () => {
     const after = await get("/api/products/2/reviews");
     const body = (await after.json()) as { reviews: { id: number }[] };
     expect(body.reviews.some((r) => r.id === reviewId)).toBe(false);
+  });
+});
+
+describe("order tracking timeline", () => {
+  test("orders start with a pending event and grow on status changes", async () => {
+    const { cookie: c } = await registerRole("Timeline Buyer", "timeline-buyer@test.com", "customer");
+    const order = await customerReq(c, "/api/orders", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        items: [{ productId: 1, quantity: 1 }],
+        address: "Patan, Lalitpur",
+        paymentMethod: "Cash on Delivery",
+      }),
+    });
+    expect(order.status).toBe(201);
+    const orderId = Number(((await order.json()) as { id: number }).id);
+
+    // The customer's order list carries the timeline.
+    const mine = (await (await customerReq(c, "/api/my/orders")).json()) as {
+      id: number;
+      events: { status: string }[];
+    }[];
+    const mineOrder = mine.find((o) => o.id === orderId);
+    expect(mineOrder?.events.map((e) => e.status)).toEqual(["pending"]);
+
+    // Admin moves it to confirmed → a second event is recorded.
+    const upd = await sellerPatch(`/api/orders/${orderId}`, { status: "confirmed" });
+    expect(upd.status).toBe(200);
+
+    // Public events endpoint shows the full timeline, oldest first.
+    const ev = await get(`/api/orders/${orderId}/events`);
+    expect(ev.status).toBe(200);
+    const body = (await ev.json()) as { events: { status: string }[] };
+    expect(body.events.map((e) => e.status)).toEqual(["pending", "confirmed"]);
+  });
+
+  test("tracking an unknown order returns 404", async () => {
+    const res = await get("/api/orders/999999/events");
+    expect(res.status).toBe(404);
   });
 });

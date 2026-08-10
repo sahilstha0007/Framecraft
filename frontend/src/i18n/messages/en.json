@@ -599,7 +599,12 @@
     "viewAuctions": "Browse auctions",
     "winning": "Winning",
     "yourBid": "Your bid",
-    "vendorBadge": "Seller"
+    "vendorBadge": "Seller",
+    "timelineTitle": "Order timeline",
+    "trackOrder": "Track an order",
+    "trackPlaceholder": "Order number",
+    "track": "Track",
+    "notFound": "Order not found."
   },
   "whatsapp": {
     "label": "Chat with us on WhatsApp",

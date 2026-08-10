@@ -213,6 +213,13 @@ export const sellerRoutes = new Elysia()
           if (updates.length === 0) return { success: true, id: params.id };
           values.push(params.id);
           await all(`UPDATE orders SET ${updates.join(", ")} WHERE id = $${values.length}`, values);
+          // Record the status transition on the shared timeline.
+          if (body.status) {
+            await all(
+              "INSERT INTO order_events (order_id, status, note) VALUES ($1, $2, $3)",
+              [params.id, body.status, body.notes?.trim() ? `Status note: ${body.notes.trim()}` : null]
+            );
+          }
           return { success: true, id: params.id };
         },
         {

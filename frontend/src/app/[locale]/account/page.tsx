@@ -51,6 +51,12 @@ interface OrderItem {
   quantity: number;
 }
 
+interface OrderEvent {
+  status: string;
+  note: string | null;
+  createdAt: string;
+}
+
 interface Order {
   id: number;
   items: OrderItem[];
@@ -59,6 +65,7 @@ interface Order {
   status: string;
   paymentStatus: string;
   createdAt: string;
+  events: OrderEvent[];
 }
 
 interface MyBid {
@@ -108,6 +115,10 @@ export default function AccountPage() {
   const [savingPw, setSavingPw] = useState(false);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
   const [pwError, setPwError] = useState<string | null>(null);
+  const [trackId, setTrackId] = useState("");
+  const [trackEvents, setTrackEvents] = useState<OrderEvent[] | null>(null);
+  const [trackError, setTrackError] = useState<string | null>(null);
+  const [trackBusy, setTrackBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -135,6 +146,64 @@ export default function AccountPage() {
   }, [load]);
 
   const label = (s: string) => t(statusKey(s));
+
+  const trackOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trackId.trim()) return;
+    setTrackBusy(true);
+    setTrackError(null);
+    setTrackEvents(null);
+    try {
+      const res = await api.get<{ events: OrderEvent[] }>(`/api/orders/${trackId.trim()}/events`);
+      setTrackEvents(res.events);
+    } catch {
+      setTrackError(t("notFound"));
+    } finally {
+      setTrackBusy(false);
+    }
+  };
+
+  /* Visual status timeline — oldest first, latest highlighted as current. */
+  const OrderTimeline = ({ events, status }: { events: OrderEvent[]; status: string }) => {
+    const list = events.length > 0 ? events : [{ status, note: null, createdAt: "" }];
+    return (
+      <ol className="mt-4">
+        {list.map((ev, i) => {
+          const isLast = i === list.length - 1;
+          return (
+            <li key={i} className="relative pl-8 pb-5 last:pb-0">
+              {!isLast && (
+                <span
+                  className="absolute left-[7px] top-4 bottom-0 w-px bg-gold-500/30"
+                  aria-hidden="true"
+                />
+              )}
+              <span
+                className={`absolute left-0 top-0.5 w-[15px] h-[15px] rounded-full border-2 flex items-center justify-center ${
+                  isLast
+                    ? "bg-gold-500 border-gold-500"
+                    : "bg-cream-50 dark:bg-[#0a0a08] border-gold-500/60"
+                }`}
+              >
+                {isLast && <CheckCircle2 size={9} className="text-[#0a0a08]" />}
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={ev.status} label={label(ev.status)} />
+                {ev.createdAt && (
+                  <span className="text-[0.6rem] text-charcoal-400 dark:text-white/25">
+                    {new Date(ev.createdAt).toLocaleString(locale)}
+                  </span>
+                )}
+              </div>
+              {ev.note && (
+                <p className="mt-1 text-xs text-charcoal-500 dark:text-white/40">{ev.note}</p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    );
+  };
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -358,6 +427,41 @@ export default function AccountPage() {
                 <ShoppingBag size={17} className="text-gold-400" />
                 <h2 className="font-heading text-lg font-semibold text-charcoal-900 dark:text-white">{to("ordersTitle")}</h2>
               </div>
+
+              {/* Track by order number (works for guests too) */}
+              <form onSubmit={trackOrder} className="mb-6 p-4 border border-charcoal-200/60 dark:border-white/[0.07] bg-white/40 dark:bg-white/[0.02]">
+                <p className="text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30 mb-2">
+                  {t("trackOrder")}
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={trackId}
+                    onChange={(e) => setTrackId(e.target.value)}
+                    placeholder={t("trackPlaceholder")}
+                    className="flex-1 px-3 py-2 bg-white dark:bg-white/[0.04] border border-charcoal-200 dark:border-white/10 text-sm text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-white/30 rounded-sm focus:outline-none focus:border-gold-500/60"
+                  />
+                  <button
+                    type="submit"
+                    disabled={trackBusy || !trackId.trim()}
+                    className="inline-flex items-center gap-2 px-5 py-2 bg-walnut-600 hover:bg-walnut-700 dark:bg-gold-500 dark:hover:bg-gold-600 disabled:opacity-50 text-white dark:text-charcoal-900 text-xs font-medium tracking-wider uppercase rounded-sm transition-colors cursor-pointer"
+                  >
+                    {trackBusy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                    {t("track")}
+                  </button>
+                </div>
+                {trackError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{trackError}</p>}
+                {trackEvents && (
+                  <div className="mt-4">
+                    <p className="text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30 mb-1">
+                      {t("timelineTitle")}
+                    </p>
+                    <OrderTimeline events={trackEvents} status={trackEvents[trackEvents.length - 1]?.status ?? "pending"} />
+                  </div>
+                )}
+              </form>
+
               {orders.length === 0 ? (
                 <div className="py-10 text-center">
                   <p className="text-sm text-charcoal-500 dark:text-white/35">{to("noOrders")}</p>
@@ -386,6 +490,14 @@ export default function AccountPage() {
                           <StatusBadge status={o.status} label={label(o.status)} />
                         </div>
                       </div>
+                      {o.events.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-charcoal-200/40 dark:border-white/[0.06]">
+                          <p className="text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30">
+                            {t("timelineTitle")}
+                          </p>
+                          <OrderTimeline events={o.events} status={o.status} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

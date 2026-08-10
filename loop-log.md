@@ -33,4 +33,15 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 - i18n: en + ne (`productPage`, `sellerProfile`).
 - Tests: +6 (`reviews & ratings`). Fixed test DB drop list (new table) + admin-vs-seller fixture nuance.
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **70 pass / 0 fail** ✅
+**Commit:** `2bf173b` + review fixes `58d2ef3`
+
+## Loop 3 — Order tracking timeline ✅
+**Plan:** record every order status transition; show a visual timeline to customers + guest track-by-number.
+**Changes:**
+- Backend: `order_events` table; initial `pending` event written inside the order transaction; admin + seller PATCH record events on status change; `GET /api/orders/:id/events` (public, statuses only); `/api/my/orders` + admin `/api/orders` attach `events[]` (single batched query).
+- Frontend: account Orders tab — vertical status timeline (gold nodes + connector, latest highlighted) under each order, plus a guest **Track an order** form (order number → public events endpoint).
+- i18n: en + ne (`account`: timelineTitle/trackOrder/trackPlaceholder/track/notFound).
+- Tests: +2 (`order tracking timeline`); added `order_events` to the test drop list.
+- Fixed backend typecheck issues from `events: []` inference + `unknown` ids.
+**Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **72 pass / 0 fail** ✅
 **Commit:** pending

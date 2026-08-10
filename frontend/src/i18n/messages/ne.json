@@ -597,7 +597,12 @@
     "viewAuctions": "लिलामी हेर्नुहोस्",
     "winning": "अगाडि छ",
     "yourBid": "तपाईंको बोल",
-    "vendorBadge": "विक्रेता"
+    "vendorBadge": "विक्रेता",
+    "timelineTitle": "अर्डर समयरेखा",
+    "trackOrder": "अर्डर ट्र्याक गर्नुहोस्",
+    "trackPlaceholder": "अर्डर नम्बर",
+    "track": "ट्र्याक",
+    "notFound": "अर्डर भेटिएन।"
   },
   "whatsapp": {
     "label": "ह्वाट्सएपमा सम्पर्क गर्नुहोस्",

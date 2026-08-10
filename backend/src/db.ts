@@ -241,6 +241,17 @@ export async function migrate() {
     );
     CREATE INDEX IF NOT EXISTS idx_bids_product ON bids(product_id, amount DESC);
 
+    -- Order status timeline: one row per status transition, oldest first.
+    -- Written at placement ('pending') and on every admin/seller status change.
+    CREATE TABLE IF NOT EXISTS order_events (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events(order_id, id);
+
     -- Seller blog: art stories and studio notes.
     CREATE TABLE IF NOT EXISTS posts (
       id SERIAL PRIMARY KEY,

@@ -24,6 +24,12 @@ class OrderError extends Error {
 
 export const PAYMENT_METHODS = ["eSewa", "Khalti", "Fonepay", "Bank Transfer", "Cash on Delivery"] as const;
 
+interface OrderEvent {
+  status: string;
+  note: string | null;
+  createdAt: string;
+}
+
 interface OrderRow {
   id: number;
   user_id: number | null;
@@ -40,6 +46,8 @@ interface OrderRow {
   notes: string | null;
   created_at: string;
 }
+
+const EMPTY_EVENTS: OrderEvent[] = [];
 
 function toOrder(row: unknown) {
   const r = row as Record<string, unknown>;
@@ -64,7 +72,33 @@ function toOrder(row: unknown) {
     status: r.status,
     notes: r.notes ?? null,
     createdAt: r.created_at,
+    events: EMPTY_EVENTS,
   };
+}
+
+/** Attach the status timeline to a list of order rows (one query). */
+async function withEvents(orders: ReturnType<typeof toOrder>[]): Promise<ReturnType<typeof toOrder>[]> {
+  if (orders.length === 0) return orders;
+  const ids = orders.map((o) => Number(o.id));
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(", ");
+  const evts = await all(
+    `SELECT order_id, status, note, created_at FROM order_events
+     WHERE order_id IN (${placeholders}) ORDER BY id`,
+    ids
+  );
+  const byOrder = new Map<number, OrderEvent[]>();
+  for (const e of evts) {
+    const rec = e as Record<string, unknown>;
+    const list: OrderEvent[] = byOrder.get(Number(rec.order_id)) ?? [];
+    list.push({
+      status: String(rec.status),
+      note: rec.note == null ? null : String(rec.note),
+      createdAt: String(rec.created_at),
+    });
+    byOrder.set(Number(rec.order_id), list);
+  }
+  for (const o of orders) o.events = byOrder.get(Number(o.id)) ?? EMPTY_EVENTS;
+  return orders;
 }
 
 export const ordersRoutes = new Elysia({ prefix: "/api" })
@@ -148,6 +182,11 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
                   body.notes ?? null,
                 ]
               )) as { id: number }[];
+              // Start the status timeline at 'pending' (order placed).
+              await tx.unsafe(
+                "INSERT INTO order_events (order_id, status) VALUES ($1, 'pending')",
+                [inserted[0].id]
+              );
               return inserted[0].id;
             });
           } catch (err) {
@@ -182,15 +221,28 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
           "SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC",
           [user.id]
         );
-        return rows.map(toOrder);
+        return withEvents(rows.map(toOrder));
       })
   )
+  /* Public: the status timeline for any order (statuses only, no PII). */
+  .get("/orders/:id/events", async ({ params, set }) => {
+    const order = await all("SELECT id FROM orders WHERE id = $1", [params.id]);
+    if (!order[0]) {
+      set.status = 404;
+      return { error: "Order not found" };
+    }
+    const rows = await all(
+      "SELECT status, note, created_at FROM order_events WHERE order_id = $1 ORDER BY id",
+      [params.id]
+    );
+    return { orderId: params.id, events: rows };
+  })
   /* Admin: every order + status/payment management. */
   .guard({ beforeHandle: requireAdmin }, (app) =>
     app
       .get("/orders", async () => {
         const rows = await all<OrderRow>("SELECT * FROM orders ORDER BY created_at DESC");
-        return rows.map(toOrder);
+        return withEvents(rows.map(toOrder));
       })
       .patch(
         "/orders/:id",
@@ -217,6 +269,13 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
           if (updates.length === 0) return { success: true, id: params.id };
           values.push(params.id);
           await all(`UPDATE orders SET ${updates.join(", ")} WHERE id = $${values.length}`, values);
+          // Record the status transition on the timeline.
+          if (body.status) {
+            await all(
+              "INSERT INTO order_events (order_id, status, note) VALUES ($1, $2, $3)",
+              [params.id, body.status, body.notes?.trim() ? `Status note: ${body.notes.trim()}` : null]
+            );
+          }
           return { success: true, id: params.id };
         },
         {
