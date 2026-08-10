@@ -39,7 +39,13 @@ export const framesRoutes = new Elysia({ prefix: "/api/frames" })
         n += 3;
       }
 
-      const sql = `SELECT * FROM frames${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY id`;
+      const SORTS: Record<string, string> = {
+        name_asc: "name ASC",
+        name_desc: "name DESC",
+        popular: "popular DESC, id ASC",
+      };
+      const orderBy = SORTS[String(query.sort ?? "")] ?? "id ASC";
+      const sql = `SELECT * FROM frames${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY ${orderBy}`;
       const rows = await all(sql, params);
       return rows.map(toFrame);
     },
@@ -48,6 +54,7 @@ export const framesRoutes = new Elysia({ prefix: "/api/frames" })
         category: t.Optional(t.String()),
         popular: t.Optional(t.String()),
         search: t.Optional(t.String()),
+        sort: t.Optional(t.String()),
       }),
     }
   )

@@ -64,9 +64,32 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
       values.push(`%${String(query.search).toLowerCase()}%`);
       where.push(`LOWER(p.name) LIKE $${values.length}`);
     }
+    // Shop filtering power-ups: in-stock only, and a price range that applies
+    // to the effective price (current bid for auctions, list price otherwise).
+    if (query.inStock === "true") {
+      where.push("((p.auction = 1 AND p.status = 'active') OR p.stock > 0)");
+    }
+    const effectivePrice = "COALESCE(p.current_bid, p.price)";
+    if (query.minPrice != null && query.minPrice !== "") {
+      values.push(Number(query.minPrice));
+      where.push(`${effectivePrice} >= $${values.length}`);
+    }
+    if (query.maxPrice != null && query.maxPrice !== "") {
+      values.push(Number(query.maxPrice));
+      where.push(`${effectivePrice} <= $${values.length}`);
+    }
+    const SORTS: Record<string, string> = {
+      newest: "p.id DESC",
+      price_asc: `${effectivePrice} ASC, p.id ASC`,
+      price_desc: `${effectivePrice} DESC, p.id ASC`,
+      most_bids: "p.bid_count DESC, p.id ASC",
+      popular: "p.featured DESC, p.bid_count DESC, p.id ASC",
+      ending_soon: "p.ends_at ASC NULLS LAST, p.id ASC",
+    };
+    const orderBy = SORTS[String(query.sort ?? "")] ?? "p.featured DESC, p.id ASC";
     const sql = `${PRODUCT_SELECT}${
       where.length ? ` WHERE ${where.join(" AND ")}` : ""
-    } ORDER BY p.featured DESC, p.id ASC`;
+    } ORDER BY ${orderBy}`;
     const rows = await all(sql, values);
     return rows.map((r) =>
       toProduct(r, {

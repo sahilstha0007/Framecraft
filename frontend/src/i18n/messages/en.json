@@ -271,7 +271,12 @@
     "popular": "Popular",
     "quickView": "Quick view",
     "viewDetails": "View details",
-    "viewFrame": "View {name}"
+    "viewFrame": "View {name}",
+    "sortLabel": "Sort",
+    "sortDefault": "Default",
+    "sortNameAsc": "Name A–Z",
+    "sortNameDesc": "Name Z–A",
+    "sortPopular": "Popular"
   },
   "contactPage": {
     "eyebrow": "Connect",
@@ -643,7 +648,17 @@
     "customTitle": "Can't find the right size?",
     "customBody": "Design a frame to your exact dimensions with our custom frame builder.",
     "buildCustom": "Build a custom frame",
-    "auctions": "Auctions"
+    "auctions": "Auctions",
+    "sortLabel": "Sort",
+    "sortDefault": "Featured",
+    "sortNewest": "Newest",
+    "sortPriceAsc": "Price: Low to High",
+    "sortPriceDesc": "Price: High to Low",
+    "sortMostBids": "Most bids",
+    "sortEndingSoon": "Ending soon",
+    "inStock": "In stock",
+    "minPrice": "Min price (NPR)",
+    "maxPrice": "Max price (NPR)"
   },
   "checkout": {
     "eyebrow": "Checkout",

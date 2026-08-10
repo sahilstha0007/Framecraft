@@ -1,18 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search, SlidersHorizontal, Gavel } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { Search, SlidersHorizontal, Gavel, ArrowUpDown, BadgeCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import PageHeader from "@/components/PageHeader";
 import ProductCard, { type ShopProduct } from "@/components/ProductCard";
 import { useCollection } from "@/lib/useCollection";
 
-export default function ShopPage() {
+/** Effective price: the current bid for auctions, list price otherwise. */
+function effectivePrice(p: ShopProduct): number {
+  return p.currentBid != null ? p.currentBid : p.price;
+}
+
+function ShopBrowser() {
   const t = useTranslations("shopPage");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [auctionOnly, setAuctionOnly] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Initial state comes from the URL so filters survive navigation/sharing.
+  const [activeCategory, setActiveCategory] = useState(
+    () => searchParams.get("category") ?? "All"
+  );
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
+  const [auctionOnly, setAuctionOnly] = useState(() => searchParams.get("auction") === "1");
+  const [sort, setSort] = useState(() => searchParams.get("sort") ?? "");
+  const [minPrice, setMinPrice] = useState(() => searchParams.get("min") ?? "");
+  const [maxPrice, setMaxPrice] = useState(() => searchParams.get("max") ?? "");
+  const [inStockOnly, setInStockOnly] = useState(() => searchParams.get("stock") === "1");
 
   // Live product list from the API (seeded with the studio's shop items).
   const { data: items } = useCollection<ShopProduct>("products", []);
@@ -22,19 +39,107 @@ export default function ShopPage() {
     [items, t]
   );
 
+  // Debounced URL sync — filters are shareable and survive reloads.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const p = new URLSearchParams();
+      if (activeCategory !== "All") p.set("category", activeCategory);
+      if (searchQuery.trim()) p.set("q", searchQuery.trim());
+      if (auctionOnly) p.set("auction", "1");
+      if (sort) p.set("sort", sort);
+      if (minPrice) p.set("min", minPrice);
+      if (maxPrice) p.set("max", maxPrice);
+      if (inStockOnly) p.set("stock", "1");
+      const qs = p.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [
+    activeCategory,
+    searchQuery,
+    auctionOnly,
+    sort,
+    minPrice,
+    maxPrice,
+    inStockOnly,
+    router,
+    pathname,
+  ]);
+
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const min = minPrice ? Number(minPrice) : null;
+    const max = maxPrice ? Number(maxPrice) : null;
     return items.filter((p) => {
-      const matchesCategory = activeCategory === t("all") || p.category === activeCategory;
-      const matchesAuction = !auctionOnly || Boolean(p.auction);
-      const matchesSearch =
-        !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q);
-      return matchesCategory && matchesAuction && matchesSearch;
+      if (activeCategory !== t("all") && p.category !== activeCategory) return false;
+      if (auctionOnly && !Boolean(p.auction)) return false;
+      if (inStockOnly && !(Boolean(p.auction) || p.stock > 0)) return false;
+      const price = effectivePrice(p);
+      if (min != null && !Number.isNaN(min) && price < min) return false;
+      if (max != null && !Number.isNaN(max) && price > max) return false;
+      if (
+        q &&
+        !p.name.toLowerCase().includes(q) &&
+        !p.category.toLowerCase().includes(q) &&
+        !p.description.toLowerCase().includes(q)
+      )
+        return false;
+      return true;
     });
-  }, [items, activeCategory, searchQuery, auctionOnly, t]);
+  }, [items, activeCategory, auctionOnly, inStockOnly, minPrice, maxPrice, searchQuery, t]);
+
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    switch (sort) {
+      case "newest":
+        list.sort((a, b) => Number(b.id) - Number(a.id));
+        break;
+      case "price_asc":
+        list.sort((a, b) => effectivePrice(a) - effectivePrice(b));
+        break;
+      case "price_desc":
+        list.sort((a, b) => effectivePrice(b) - effectivePrice(a));
+        break;
+      case "most_bids":
+        list.sort((a, b) => (b.bidCount ?? 0) - (a.bidCount ?? 0));
+        break;
+      case "ending_soon":
+        list.sort((a, b) =>
+          (a.endsAt ?? "9999").localeCompare(b.endsAt ?? "9999")
+        );
+        break;
+      case "popular":
+        list.sort(
+          (a, b) =>
+            Number(Boolean(b.featured)) - Number(Boolean(a.featured)) ||
+            (b.bidCount ?? 0) - (a.bidCount ?? 0)
+        );
+        break;
+    }
+    return list;
+  }, [filtered, sort]);
+
+  const resetAll = () => {
+    setActiveCategory(t("all"));
+    setSearchQuery("");
+    setAuctionOnly(false);
+    setSort("");
+    setMinPrice("");
+    setMaxPrice("");
+    setInStockOnly(false);
+  };
+
+  const hasFilters =
+    activeCategory !== t("all") || auctionOnly || inStockOnly || sort || minPrice || maxPrice;
+
+  const chipBase =
+    "whitespace-nowrap px-4 py-2 text-[0.6rem] font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400";
+  const chipIdle =
+    "border border-charcoal-200 text-charcoal-500 hover:text-charcoal-800 hover:border-charcoal-400 dark:border-white/10 dark:text-white/50 dark:hover:text-white/80 dark:hover:border-white/20";
+  const chipActive = "bg-gold-500 text-[#0a0a08]";
+
+  const fieldClass =
+    "w-full px-3 py-2 bg-charcoal-900/[0.03] border border-charcoal-200 text-sm text-charcoal-900 placeholder-charcoal-400 dark:bg-white/[0.03] dark:border-white/10 dark:text-white dark:placeholder-white/30 rounded-full focus:outline-none focus:border-gold-500/60 dark:focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/30 transition-colors";
 
   return (
     <>
@@ -57,10 +162,8 @@ export default function ShopPage() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`whitespace-nowrap px-4 py-2 text-[0.6rem] font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400 ${
-                    activeCategory === cat
-                      ? "bg-gold-500 text-[#0a0a08]"
-                      : "border border-charcoal-200 text-charcoal-500 hover:text-charcoal-800 hover:border-charcoal-400 dark:border-white/10 dark:text-white/50 dark:hover:text-white/80 dark:hover:border-white/20"
+                  className={`${chipBase} ${
+                    activeCategory === cat ? chipActive : chipIdle
                   }`}
                 >
                   {cat}
@@ -71,10 +174,8 @@ export default function ShopPage() {
             <button
               onClick={() => setAuctionOnly((v) => !v)}
               aria-pressed={auctionOnly}
-              className={`whitespace-nowrap px-4 py-2 text-[0.6rem] font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer ${
-                auctionOnly
-                  ? "bg-gold-500 text-[#0a0a08]"
-                  : "border border-charcoal-200 text-charcoal-500 hover:text-charcoal-800 hover:border-charcoal-400 dark:border-white/10 dark:text-white/50 dark:hover:text-white/80 dark:hover:border-white/20"
+              className={`${chipBase} ${
+                auctionOnly ? chipActive : chipIdle
               }`}
             >
               <Gavel size={11} className="inline mr-1.5" /> {t("auctions")}
@@ -90,9 +191,68 @@ export default function ShopPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("searchPlaceholder")}
-                className="w-full pl-10 pr-4 py-2.5 bg-charcoal-900/[0.03] border border-charcoal-200 text-sm text-charcoal-900 placeholder-charcoal-400 dark:bg-white/[0.03] dark:border-white/10 dark:text-white dark:placeholder-white/30 rounded-full focus:outline-none focus:border-gold-500/60 dark:focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/30 transition-colors"
+                className={`${fieldClass} pl-10`}
               />
             </div>
+          </div>
+
+          {/* Second row: sort, price range, in-stock */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
+            <label className="flex items-center gap-2 text-[0.6rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 dark:text-white/40">
+              <ArrowUpDown size={12} className="text-gold-400/70" />
+              {t("sortLabel")}
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="bg-transparent border border-charcoal-200 dark:border-white/10 text-charcoal-800 dark:text-white/80 text-xs px-2 py-1.5 rounded-full focus:outline-none focus:border-gold-500/60 cursor-pointer"
+              >
+                <option value="">{t("sortDefault")}</option>
+                <option value="newest">{t("sortNewest")}</option>
+                <option value="price_asc">{t("sortPriceAsc")}</option>
+                <option value="price_desc">{t("sortPriceDesc")}</option>
+                <option value="most_bids">{t("sortMostBids")}</option>
+                <option value="ending_soon">{t("sortEndingSoon")}</option>
+              </select>
+            </label>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                placeholder={t("minPrice")}
+                aria-label={t("minPrice")}
+                className={`${fieldClass} w-36`}
+              />
+              <span className="text-charcoal-400 dark:text-white/30 font-mono text-xs">—</span>
+              <input
+                type="number"
+                min={0}
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                placeholder={t("maxPrice")}
+                aria-label={t("maxPrice")}
+                className={`${fieldClass} w-36`}
+              />
+            </div>
+
+            <button
+              onClick={() => setInStockOnly((v) => !v)}
+              aria-pressed={inStockOnly}
+              className={`${chipBase} ${inStockOnly ? chipActive : chipIdle}`}
+            >
+              <BadgeCheck size={11} className="inline mr-1.5" /> {t("inStock")}
+            </button>
+
+            {hasFilters && (
+              <button
+                onClick={resetAll}
+                className="text-[0.6rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 hover:text-gold-600 dark:text-white/40 dark:hover:text-gold-300 transition-colors cursor-pointer"
+              >
+                {t("resetFilters")}
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -103,8 +263,8 @@ export default function ShopPage() {
           <div className="flex items-center justify-between mb-10 font-mono text-[0.55rem] tracking-[0.25em] uppercase text-charcoal-500 dark:text-white/30">
             <span>
               <SlidersHorizontal size={12} className="inline mr-2 text-gold-400/60" />
-              {t("showing", { count: filtered.length })}{" "}
-              {filtered.length === 1 ? t("item") : t("items")}
+              {t("showing", { count: sorted.length })}{" "}
+              {sorted.length === 1 ? t("item") : t("items")}
             </span>
             {searchQuery && (
               <button
@@ -116,7 +276,7 @@ export default function ShopPage() {
             )}
           </div>
 
-          {filtered.length === 0 ? (
+          {sorted.length === 0 ? (
             <div className="text-center py-24">
               <div className="font-mono text-[0.6rem] tracking-[0.3em] uppercase text-charcoal-400 dark:text-white/25 mb-5">
                 {t("noResults")}
@@ -128,11 +288,7 @@ export default function ShopPage() {
                 {t("noProductsBody")}
               </p>
               <button
-                onClick={() => {
-                  setActiveCategory(t("all"));
-                  setSearchQuery("");
-                  setAuctionOnly(false);
-                }}
+                onClick={resetAll}
                 className="mt-7 inline-flex items-center gap-2 px-6 py-3 border border-charcoal-300 text-charcoal-700 dark:border-white/15 dark:text-white/70 text-xs font-medium tracking-wider uppercase rounded-full hover:border-gold-500/60 dark:hover:border-gold-400/50 hover:text-gold-600 dark:hover:text-gold-300 transition-colors duration-300 cursor-pointer"
               >
                 {t("resetFilters")}
@@ -140,7 +296,7 @@ export default function ShopPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filtered.map((product, i) => (
+              {sorted.map((product, i) => (
                 <ProductCard key={product.id} product={product} index={i} />
               ))}
             </div>
@@ -166,5 +322,13 @@ export default function ShopPage() {
         </div>
       </section>
     </>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={null}>
+      <ShopBrowser />
+    </Suspense>
   );
 }

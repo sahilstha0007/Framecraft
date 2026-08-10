@@ -269,7 +269,12 @@
     "popular": "लोकप्रिय",
     "quickView": "द्रुत दृश्य",
     "viewDetails": "विवरण हेर्नुहोस्",
-    "viewFrame": "{name} हेर्नुहोस्"
+    "viewFrame": "{name} हेर्नुहोस्",
+    "sortLabel": "क्रमबद्ध",
+    "sortDefault": "पूर्वनिर्धारित",
+    "sortNameAsc": "नाम क–ज",
+    "sortNameDesc": "नाम ज–क",
+    "sortPopular": "लोकप्रिय"
   },
   "contactPage": {
     "eyebrow": "सम्पर्क",
@@ -641,7 +646,17 @@
     "customTitle": "सही साइज भेटिएन?",
     "customBody": "हाम्रो कस्टम फ्रेम बिल्डरबाट तपाईंको नाप अनुसारको फ्रेम डिजाइन गर्नुहोस्।",
     "buildCustom": "कस्टम फ्रेम बनाउनुहोस्",
-    "auctions": "लिलामीहरू"
+    "auctions": "लिलामीहरू",
+    "sortLabel": "क्रमबद्ध",
+    "sortDefault": "विशेष",
+    "sortNewest": "नयाँ",
+    "sortPriceAsc": "मूल्य: कमदेखि उच्च",
+    "sortPriceDesc": "मूल्य: उच्चदेखि कम",
+    "sortMostBids": "धेरै बोलि",
+    "sortEndingSoon": "चाँडै सकिने",
+    "inStock": "स्टकमा",
+    "minPrice": "न्यूनतम मूल्य (NPR)",
+    "maxPrice": "अधिकतम मूल्य (NPR)"
   },
   "checkout": {
     "eyebrow": "चेकआउट",

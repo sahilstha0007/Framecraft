@@ -1378,3 +1378,62 @@ describe("marketplace — payments", () => {
     expect(body.error).toContain("Khalti is not configured");
   });
 });
+
+describe("products search & filtering power-ups", () => {
+  test("sort=price_asc orders by effective price ascending", async () => {
+    const res = await get("/api/products?sort=price_asc");
+    expect(res.status).toBe(200);
+    const items = (await res.json()) as { price: number; currentBid: number | null }[];
+    expect(items.length).toBeGreaterThan(0);
+    for (let i = 1; i < items.length; i++) {
+      const prev = items[i - 1].currentBid ?? items[i - 1].price;
+      const curr = items[i].currentBid ?? items[i].price;
+      expect(prev).toBeLessThanOrEqual(curr);
+    }
+  });
+
+  test("minPrice/maxPrice filter by effective price", async () => {
+    const res = await get("/api/products?minPrice=1000&maxPrice=20000");
+    expect(res.status).toBe(200);
+    const items = (await res.json()) as { price: number; currentBid: number | null }[];
+    for (const p of items) {
+      const eff = p.currentBid ?? p.price;
+      expect(eff).toBeGreaterThanOrEqual(1000);
+      expect(eff).toBeLessThanOrEqual(20000);
+    }
+  });
+
+  test("inStock=true only returns items with stock or active auctions", async () => {
+    const res = await get("/api/products?inStock=true");
+    expect(res.status).toBe(200);
+    const items = (await res.json()) as {
+      stock: number;
+      auction: boolean;
+      status: string;
+    }[];
+    for (const p of items) {
+      if (!p.auction) expect(p.stock).toBeGreaterThan(0);
+    }
+  });
+
+  test("sort=ending_soon returns auctions ending first", async () => {
+    const res = await get("/api/products?sort=ending_soon&auction=true");
+    expect(res.status).toBe(200);
+    const items = (await res.json()) as { endsAt: string | null }[];
+    const dates = items.map((p) =>
+      p.endsAt ? new Date(p.endsAt).getTime() : Number.MAX_SAFE_INTEGER
+    );
+    for (let i = 1; i < dates.length; i++) {
+      expect(dates[i - 1]).toBeLessThanOrEqual(dates[i]);
+    }
+  });
+
+  test("frames support sort=name_asc", async () => {
+    const res = await get("/api/frames?sort=name_asc");
+    expect(res.status).toBe(200);
+    const items = (await res.json()) as { name: string }[];
+    for (let i = 1; i < items.length; i++) {
+      expect(items[i - 1].name.localeCompare(items[i].name)).toBeLessThanOrEqual(0);
+    }
+  });
+});
