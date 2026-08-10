@@ -296,7 +296,6 @@ export async function migrate() {
       created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
       UNIQUE (product_id, user_id)
     );
-    CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id);
   `);
 }
 

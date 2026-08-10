@@ -310,15 +310,11 @@ export default function ProductPage() {
 
   const deleteReview = async (id: number) => {
     await api.remove(`/api/reviews`, id).catch(() => {});
-    setReviews((prev) =>
-      prev
-        ? {
-            average: prev.reviews.length === 1 ? null : prev.average,
-            count: Math.max(0, prev.count - 1),
-            reviews: prev.reviews.filter((r) => r.id !== id),
-          }
-        : prev
-    );
+    // Refetch so the aggregate average/count stay accurate after a delete.
+    const rv = await api
+      .get<ReviewsData>(`/api/products/${params.id}/reviews`)
+      .catch(() => null);
+    if (rv) setReviews(rv);
   };
 
   const submitReply = async (id: number) => {

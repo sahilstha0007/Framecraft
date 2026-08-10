@@ -63,19 +63,27 @@ export const reviewsRoutes = new Elysia()
             set.status = 404;
             return { error: "Product not found" };
           }
-          const existing = await all(
-            "SELECT id FROM product_reviews WHERE product_id = $1 AND user_id = $2",
-            [params.id, user.id]
-          );
-          if (existing[0]) {
-            set.status = 409;
-            return { error: "You have already reviewed this product" };
+          let inserted: { id: number }[];
+          try {
+            inserted = await all<{ id: number }>(
+              `INSERT INTO product_reviews (product_id, user_id, rating, title, body)
+               VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+              [
+                params.id,
+                user.id,
+                body.rating,
+                (body.title ?? "").trim() || null,
+                (body.body ?? "").trim() || null,
+              ]
+            );
+          } catch (err) {
+            // Race-safe duplicate: two concurrent posts for the same user+product.
+            if (String((err as Error).message ?? err).includes("duplicate key")) {
+              set.status = 409;
+              return { error: "You have already reviewed this product" };
+            }
+            throw err;
           }
-          const inserted = await all<{ id: number }>(
-            `INSERT INTO product_reviews (product_id, user_id, rating, title, body)
-             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-            [params.id, user.id, body.rating, body.title ?? null, body.body ?? null]
-          );
           set.status = 201;
           const rows = await all(
             `SELECT r.*, u.name AS author_name, u.avatar AS author_avatar

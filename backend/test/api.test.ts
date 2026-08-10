@@ -1458,16 +1458,28 @@ describe("reviews & ratings", () => {
   });
 
   test("reviews endpoint returns aggregate + review list", async () => {
-    const res = await get("/api/products/1/reviews");
+    const cookie = await registerCustomer("Aggregate Tester", "agg-test@test.com");
+    await customerReq(cookie, "/api/products/2/reviews", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ rating: 4 }),
+    });
+    const res = await get("/api/products/2/reviews");
     expect(res.status).toBe(200);
     const body = (await res.json()) as { average: number; count: number; reviews: unknown[] };
     expect(body.count).toBeGreaterThan(0);
     expect(body.reviews.length).toBe(body.count);
-    expect(body.average).toBe(5);
+    expect(body.average).toBe(4);
   });
 
   test("product detail includes avg rating + review count", async () => {
-    const res = await get("/api/products/1");
+    const cookie = await registerCustomer("Detail Tester", "detail-test@test.com");
+    await customerReq(cookie, "/api/products/3/reviews", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ rating: 5 }),
+    });
+    const res = await get("/api/products/3");
     expect(res.status).toBe(200);
     const body = (await res.json()) as { avgRating: number | null; reviewCount: number };
     expect(body.reviewCount).toBeGreaterThan(0);
