@@ -48,7 +48,12 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 
 ## Loop 10 — Auction ending-soon alerts
 
-(placeholder — filled in below)
+**What shipped**
+- Bidders are notified (once) when an auction they bid on is within 2 hours of
+  its deadline — the lazy sweep stays idempotent via a NOT EXISTS guard on
+  (user, type, link), so repeated reads can never spam.
+- NotificationBell renders a Timer icon for `ending_soon`.
+- +1 test (two sweeps → exactly one alert).
 
 ## Loop 9 — Marketplace pulse (live activity + fresh arrivals)
 

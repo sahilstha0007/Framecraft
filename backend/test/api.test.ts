@@ -2082,3 +2082,44 @@ describe("marketplace pulse", () => {
     expect(body.newSellers.some((s) => s.shopName === "Pulse Shop")).toBe(true);
   });
 });
+
+describe("auction ending-soon alerts", () => {
+  test("bidders are alerted once when their auction is ending soon", async () => {
+    const vendor = await registerRole("Alarm Vendor", "alarm-vendor@test.com", "seller", "Alarm Shop");
+    const created = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Ending Soon Lot",
+        category: "Art",
+        price: 0,
+        image: "https://images.unsplash.com/photo-x",
+        description: "Ends within the hour",
+        stock: 1,
+        featured: false,
+        auction: true,
+        startingBid: 500,
+        minIncrement: 100,
+        endsAt: isoInHours(0.5),
+      }),
+    });
+    const auctionId = Number(((await created.json()) as { id: number }).id);
+
+    const bidder = await registerCustomer("Alarm Bidder", "alarm-bidder@test.com");
+    await customerReq(bidder, `/api/products/${auctionId}/bid`, {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ amount: 600 }),
+    });
+
+    // Any auction read triggers the lazy sweep.
+    await get("/api/products");
+    await get("/api/products");
+
+    const res = await customerReq(bidder, "/api/me/notifications");
+    const body = (await res.json()) as { notifications: { type: string; title: string }[] };
+    const alerts = body.notifications.filter((n) => n.type === "ending_soon");
+    expect(alerts.length).toBe(1); // exactly once, despite two sweeps
+    expect(alerts[0].title).toContain("Ending Soon Lot");
+  });
+});

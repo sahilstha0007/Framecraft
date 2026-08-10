@@ -28,11 +28,50 @@ function toProduct(row: unknown, extra?: Record<string, unknown>) {
 }
 
 /**
+ * Notify everyone who bid on an auction that it's ending within the next two
+ * hours — once per user+auction (the NOT EXISTS guard makes it idempotent, so
+ * repeated lazy sweeps can never spam).
+ */
+async function notifyEndingSoonAuctions(): Promise<void> {
+  const ending = await all<{ id: number; name: string }>(
+    `SELECT id, name FROM products
+     WHERE auction = 1 AND status = 'active'
+       AND ends_at IS NOT NULL
+       AND ends_at > to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS')
+       AND ends_at <= to_char(now() + interval '2 hours', 'YYYY-MM-DD"T"HH24:MI:SS')`
+  );
+  for (const auction of ending) {
+    const bidders = await all<{ user_id: number }>(
+      "SELECT DISTINCT user_id FROM bids WHERE product_id = $1",
+      [auction.id]
+    );
+    for (const b of bidders) {
+      const link = `/products/${auction.id}`;
+      await all(
+        `INSERT INTO notifications (user_id, type, title, body, link)
+         SELECT $1, 'ending_soon', $2, $3, $4
+         WHERE NOT EXISTS (
+           SELECT 1 FROM notifications n
+           WHERE n.user_id = $1 AND n.type = 'ending_soon' AND n.link = $4
+         )`,
+        [
+          b.user_id,
+          `“${auction.name}” ends in under 2 hours`,
+          "Your bid is still on top? Bid now or risk losing it.",
+          link,
+        ]
+      );
+    }
+  }
+}
+
+/**
  * Close any auction whose deadline has passed: mark it ended and lock in the
  * current highest bidder as the winner. Run lazily on every auction read so a
  * dead auction resolves itself without needing a cron job.
  */
 export async function closeExpiredAuctions(): Promise<void> {
+  await notifyEndingSoonAuctions();
   // Atomically close the auctions that just crossed their deadline: the
   // conditional UPDATE only matches `status = 'active'`, so a concurrent call
   // can never double-close or double-notify.

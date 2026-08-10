@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, CheckCheck, Gavel, MessageSquare, ShoppingBag, Star, Users } from "lucide-react";
+import { Bell, CheckCheck, Gavel, MessageSquare, ShoppingBag, Star, Timer, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
@@ -26,6 +26,7 @@ const TYPE_ICONS: Record<string, typeof Bell> = {
   new_follower: Users,
   new_comment: MessageSquare,
   review_received: Star,
+  ending_soon: Timer,
 };
 
 export default function NotificationBell() {
