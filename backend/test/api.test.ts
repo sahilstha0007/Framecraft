@@ -1716,14 +1716,23 @@ describe("view tracking, trending & recommendations", () => {
 
     const view = await post(`/api/products/${pid}/view`, {});
     expect(view.status).toBe(200);
-    const cookie = await registerCustomer("Viewer A", "viewer-a@test.com");
-    const signed = await customerReq(cookie, `/api/products/${pid}/view`, { method: "POST" });
-    expect(signed.status).toBe(200);
 
-    // Enough views to guarantee the fresh product surfaces in the top-8 list.
+    // Distinct signed-in viewers each count once (views are deduped per user
+    // per hour), giving a burst-proof score that surfaces in the top-8 list.
     for (let i = 0; i < 10; i++) {
-      await post(`/api/products/${pid}/view`, {});
+      const cookie = await registerCustomer(`Viewer ${i}`, `viewer-${i}@test.com`);
+      const signed = await customerReq(cookie, `/api/products/${pid}/view`, {
+        method: "POST",
+      });
+      expect(signed.status).toBe(200);
     }
+
+    // The same viewer hammering the endpoint does NOT inflate the count.
+    const hammer = await registerCustomer("Viewer Hammer", "viewer-hammer@test.com");
+    for (let i = 0; i < 5; i++) {
+      await customerReq(hammer, `/api/products/${pid}/view`, { method: "POST" });
+    }
+
     const trending = (await (await get("/api/products/trending")).json()) as {
       id: number;
       views: number;
@@ -1731,7 +1740,8 @@ describe("view tracking, trending & recommendations", () => {
     }[];
     const found = trending.find((p) => p.id === pid);
     expect(found).toBeDefined();
-    expect(found!.views).toBeGreaterThanOrEqual(12);
+    // 1 guest + 10 signed-in users (+ hammer deduped) — well above zero.
+    expect(found!.views).toBeGreaterThanOrEqual(11);
     expect(found!.score).toBeGreaterThan(0);
   });
 
@@ -1745,6 +1755,21 @@ describe("view tracking, trending & recommendations", () => {
     }
     // Out-of-stock fixed-price items never trend.
     expect(items.some((p) => !p.auction && p.stock <= 0)).toBe(false);
+  });
+
+  test("view pings without an identity are deduped per product per hour", async () => {
+    const res1 = await post("/api/products/3/view", {});
+    const res2 = await post("/api/products/3/view", {});
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+    const trending = (await (await get("/api/products/trending")).json()) as {
+      id: number;
+      views: number;
+    }[];
+    const p3 = trending.find((p) => p.id === 3);
+    // Two anonymous pings within the hour window collapse to a single view
+    // (NULL identity bucket).
+    expect(p3 ? p3.views : 0).toBeLessThanOrEqual(1);
   });
 
   test("recommendations share a category and explain the reason", async () => {

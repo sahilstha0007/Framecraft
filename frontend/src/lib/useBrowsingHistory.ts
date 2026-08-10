@@ -13,6 +13,7 @@ export interface HistoryItem {
 }
 
 const KEY = "fc_browsing_history";
+const VISITOR_KEY = "fc_visitor_id";
 const MAX = 8;
 
 function readHistory(): HistoryItem[] {
@@ -28,6 +29,21 @@ function readHistory(): HistoryItem[] {
   }
 }
 
+/** Stable anonymous fingerprint for guest view tracking (anti-spam dedup). */
+function getVisitorId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    let id = window.localStorage.getItem(VISITOR_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      window.localStorage.setItem(VISITOR_KEY, id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
 /**
  * ── Browsing history hook ──────────────────────────────────────────────────
  * Tracks which products the visitor has opened (persisted in localStorage so
@@ -39,21 +55,23 @@ export function useBrowsingHistory() {
   const [history, setHistory] = useState<HistoryItem[]>(readHistory);
 
   const record = useCallback((item: Omit<HistoryItem, "at">) => {
-    setHistory((prev) => {
-      const next = [
-        { ...item, at: Date.now() },
-        ...prev.filter((h) => h.id !== item.id),
-      ].slice(0, MAX);
-      try {
-        window.localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        /* storage full or unavailable — history is best-effort */
-      }
-      return next;
-    });
+    // localStorage is the source of truth, so the write lives outside the
+    // state updater (updaters must stay pure).
+    const next = [
+      { ...item, at: Date.now() },
+      ...readHistory().filter((h) => h.id !== item.id),
+    ].slice(0, MAX);
+    setHistory(next);
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify(next));
+    } catch {
+      /* storage full or unavailable — history is best-effort */
+    }
     // Fire-and-forget view signal to the backend (drives trending).
     api
-      .create<{ ok: boolean }>(`/api/products/${item.id}/view`, {})
+      .create<{ ok: boolean }>(`/api/products/${item.id}/view`, {
+        visitorId: getVisitorId(),
+      })
       .catch(() => {});
   }, []);
 

@@ -324,16 +324,21 @@ export async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, id);
 
     -- Product view tracking: one row per product-page visit (the signed-in
-    -- user when available, NULL for guests). Drives the "trending" score and
-    -- co-occurrence recommendations — our best signal for what's hot.
+    -- user when available; guests carry a localStorage visitor id). Drives the
+    -- "trending" score and co-occurrence recommendations. Views are deduped
+    -- per identity per product within an hour so the ranking can't be gamed
+    -- by hammering the view endpoint.
     CREATE TABLE IF NOT EXISTS product_views (
       id SERIAL PRIMARY KEY,
       product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
       user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      visitor_id TEXT,
       viewed_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
     );
+    ALTER TABLE product_views ADD COLUMN IF NOT EXISTS visitor_id TEXT;
     CREATE INDEX IF NOT EXISTS idx_product_views_product ON product_views(product_id, viewed_at);
     CREATE INDEX IF NOT EXISTS idx_product_views_user ON product_views(user_id, viewed_at);
+    CREATE INDEX IF NOT EXISTS idx_product_views_visitor ON product_views(visitor_id, product_id, viewed_at);
   `);
 }
 

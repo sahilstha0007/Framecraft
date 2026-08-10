@@ -70,6 +70,27 @@ const PRODUCT_SELECT = `
     FROM product_reviews GROUP BY product_id
   ) rv ON rv.product_id = p.id`;
 
+/** PRODUCT_SELECT + the 14-day view counts and the weighted trending score. */
+const TRENDING_SELECT = `
+  SELECT p.*,
+         u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name,
+         rv.avg_rating, rv.review_count,
+         COALESCE(v.views_14d, 0)::int AS views,
+         (COALESCE(v.views_14d, 0) * 2 + p.bid_count * 4 + COALESCE(rv.review_count, 0) * 3)::int AS score
+  FROM products p
+  LEFT JOIN users u ON u.id = p.seller_id
+  LEFT JOIN (
+    SELECT product_id, COUNT(*)::int AS views_14d
+    FROM product_views
+    WHERE viewed_at >= to_char(now() - interval '14 days', 'YYYY-MM-DD HH24:MI:SS')
+    GROUP BY product_id
+  ) v ON v.product_id = p.id
+  LEFT JOIN (
+    SELECT product_id, ROUND(AVG(rating)::numeric, 1) AS avg_rating,
+           COUNT(*)::int AS review_count
+    FROM product_reviews GROUP BY product_id
+  ) rv ON rv.product_id = p.id`;
+
 /** Public shop reads. Writes go through the seller-scoped or admin CRUD. */
 export const productsRoutes = new Elysia({ prefix: "/api/products" })
   .get("/", async ({ query }) => {
@@ -139,24 +160,7 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
     async () => {
       await closeExpiredAuctions();
       const rows = await all(
-        `SELECT p.*,
-                u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name,
-                rv.avg_rating, rv.review_count,
-                COALESCE(v.views_14d, 0)::int AS views,
-                (COALESCE(v.views_14d, 0) * 2 + p.bid_count * 4 + COALESCE(rv.review_count, 0) * 3)::int AS score
-         FROM products p
-         LEFT JOIN users u ON u.id = p.seller_id
-         LEFT JOIN (
-           SELECT product_id, COUNT(*)::int AS views_14d
-           FROM product_views
-           WHERE viewed_at >= to_char(now() - interval '14 days', 'YYYY-MM-DD HH24:MI:SS')
-           GROUP BY product_id
-         ) v ON v.product_id = p.id
-         LEFT JOIN (
-           SELECT product_id, ROUND(AVG(rating)::numeric, 1) AS avg_rating,
-                  COUNT(*)::int AS review_count
-           FROM product_reviews GROUP BY product_id
-         ) rv ON rv.product_id = p.id
+        `${TRENDING_SELECT}
          WHERE (p.auction = 1 AND p.status = 'active') OR (p.auction = 0 AND p.stock > 0)
          ORDER BY score DESC, p.bid_count DESC, p.id ASC
          LIMIT 8`
@@ -182,6 +186,7 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
   .get(
     "/recommendations",
     async ({ query }) => {
+      await closeExpiredAuctions();
       const ids = String(query.basedOn ?? "")
         .split(",")
         .map((s) => Number(s.trim()))
@@ -205,24 +210,7 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
         .map((_, i) => `$${categories.length + i + 1}`)
         .join(",");
       const rows = await all(
-        `SELECT p.*,
-                u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name,
-                rv.avg_rating, rv.review_count,
-                COALESCE(v.views_14d, 0)::int AS views,
-                (COALESCE(v.views_14d, 0) * 2 + p.bid_count * 4 + COALESCE(rv.review_count, 0) * 3)::int AS score
-         FROM products p
-         LEFT JOIN users u ON u.id = p.seller_id
-         LEFT JOIN (
-           SELECT product_id, COUNT(*)::int AS views_14d
-           FROM product_views
-           WHERE viewed_at >= to_char(now() - interval '14 days', 'YYYY-MM-DD HH24:MI:SS')
-           GROUP BY product_id
-         ) v ON v.product_id = p.id
-         LEFT JOIN (
-           SELECT product_id, ROUND(AVG(rating)::numeric, 1) AS avg_rating,
-                  COUNT(*)::int AS review_count
-           FROM product_reviews GROUP BY product_id
-         ) rv ON rv.product_id = p.id
+        `${TRENDING_SELECT}
          WHERE p.category IN (${catPh})
            AND p.id NOT IN (${idPh})
            AND ((p.auction = 1 AND p.status = 'active') OR (p.auction = 0 AND p.stock > 0))
@@ -254,23 +242,42 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
     }
   )
   // ── View tracking: fire-and-forget ping from the product page. Optional
-  // auth — guests count too (user_id NULL). Feeds the trending score.
+  // auth — guests count too (user_id NULL, visitor_id from localStorage).
+  // Dedup: one view per identity per product per hour, so the trending score
+  // can't be inflated by hammering this endpoint. Anonymous pings without a
+  // visitor id share one bucket and count at most hourly.
   .post(
     "/:id/view",
-    async ({ params, request, set }) => {
+    async ({ params, request, body, set }) => {
       const found = await all("SELECT id FROM products WHERE id = $1", [params.id]);
       if (!found[0]) {
         set.status = 404;
         return { error: "Product not found" };
       }
       const user = await getUserBySession(request);
-      await all("INSERT INTO product_views (product_id, user_id) VALUES ($1, $2)", [
-        params.id,
-        user?.id ?? null,
-      ]);
+      const visitorId = typeof body?.visitorId === "string" ? body.visitorId : null;
+      const userParam = user?.id ?? null;
+      const visitorParam = user ? null : visitorId;
+      // Explicit casts: Postgres can't infer parameter types inside an
+      // INSERT..SELECT..WHERE NOT EXISTS without them.
+      await all(
+        `INSERT INTO product_views (product_id, user_id, visitor_id)
+         SELECT $1::int, $2::int, $3::text
+         WHERE NOT EXISTS (
+           SELECT 1 FROM product_views pv
+           WHERE pv.product_id = $1::int
+             AND pv.viewed_at >= to_char(now() - interval '1 hour', 'YYYY-MM-DD HH24:MI:SS')
+             AND (
+               ($2::int IS NOT NULL AND pv.user_id = $2::int)
+               OR ($2::int IS NULL AND $3::text IS NOT NULL AND pv.visitor_id = $3::text)
+               OR ($2::int IS NULL AND $3::text IS NULL AND pv.user_id IS NULL)
+             )
+         )`,
+        [params.id, userParam, visitorParam]
+      );
       return { ok: true };
     },
-    { params: t.Object({ id: t.Numeric() }) }
+    { params: t.Object({ id: t.Numeric() }), body: t.Optional(t.Object({ visitorId: t.Optional(t.String({ maxLength: 128 })) })) }
   )
   .get(
     "/:id",

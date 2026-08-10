@@ -60,10 +60,20 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 - i18n en/ne; +5 tests (views feed trending, score ordering, recommendation
   reasons, unknown-base empty, 404 on missing product).
 
+**Review fixes**
+- Hydration safety: PickedForYou deferred until `mounted` (localStorage read on
+  client would mismatch SSR).
+- Anti-gaming: views deduped per identity per product per hour (signed-in →
+  user_id, guest → localStorage visitor_id, anonymous → shared NULL bucket).
+- `closeExpiredAuctions()` added to recommendations (consistency with trending).
+- Shared `TRENDING_SELECT` constant (was duplicated between the two endpoints).
+- Explicit `$n::int/text` casts in the view INSERT..SELECT (Postgres can't infer
+  param types there); localStorage write moved out of the state updater.
+
 **Notes**
 - Bun.sql can't encode JS-array params → generated IN placeholders instead of `ANY($n::int[])`.
-- Trending excludes out-of-stock fixed-price items; test creates its own product
-  because earlier suites deplete seeded stock.
+- Trending excludes out-of-stock fixed-price items; tests create their own
+  products because earlier suites deplete seeded stock.
 
 ## Loop 4 — Notifications center (in-app + WhatsApp) ✅
 **Plan:** in-app notification center fed by marketplace events; best-effort WhatsApp nudges.

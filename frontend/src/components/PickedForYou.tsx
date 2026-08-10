@@ -24,6 +24,11 @@ export default function PickedForYou() {
   const t = useTranslations("home");
   const { history, clear } = useBrowsingHistory();
   const [items, setItems] = useState<RecommendedItem[] | null>(null);
+  // localStorage is only readable on the client, so defer rendering until
+  // after mount — otherwise SSR output (no section) and hydration (section
+  // present) would mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const basedOn = useMemo(
     () => history.slice(0, 6).map((h) => h.id).join(","),
@@ -51,7 +56,7 @@ export default function PickedForYou() {
     };
   }, [basedOn]);
 
-  if (!history.length || !items || items.length === 0) return null;
+  if (!mounted || !history.length || !items || items.length === 0) return null;
 
   return (
     <section className="py-24 bg-cream-50 dark:bg-black">
