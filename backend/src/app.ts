@@ -12,7 +12,7 @@ import { quoteRoutes } from "./routes/quote";
 import { bookingsRoutes, myRequestsRoutes } from "./routes/bookings";
 import { contactRoutes } from "./routes/contact";
 import { newsletterRoutes } from "./routes/newsletter";
-import { adminRoutes } from "./routes/admin";
+import { adminRoutes, adminAnalyticsRoutes } from "./routes/admin";
 import { authRoutes, bootstrapSellerRoutes } from "./routes/auth";
 import { usersRoutes } from "./routes/users";
 import { productsRoutes } from "./routes/products";
@@ -125,6 +125,6 @@ export const app = new Elysia()
   .use(paymentsRoutes)
   .use(settingsRoutes)
   .use(settingsWriteRoutes)
-  .use([...adminRoutes]);
+  .use([...adminRoutes, adminAnalyticsRoutes]);
 
 export type App = typeof app;

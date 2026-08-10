@@ -1905,3 +1905,69 @@ describe("seller analytics", () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe("admin analytics", () => {
+  const adminReq = (path: string) =>
+    app.handle(
+      new Request(`http://localhost${path}`, {
+        headers: { Cookie: `fc_session=${sellerToken}` },
+      })
+    );
+
+  test("analytics surfaces site-wide KPIs and a 30-day revenue series", async () => {
+    const vendor = await registerRole("An Vendor", "an-vendor@test.com", "seller", "An Shop");
+    const created = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Admin Widget",
+        category: "Goods",
+        price: 1500,
+        image: "https://images.unsplash.com/photo-x",
+        description: "Admin analytics widget",
+        stock: 20,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+    const pid = Number(((await created.json()) as { id: number }).id);
+    const buyer = await registerCustomer("An Admin Buyer", "an-admin-buyer@test.com");
+    const order = await customerReq(buyer, "/api/orders", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        items: [{ productId: pid, quantity: 2 }],
+        address: "Kirtipur",
+        paymentMethod: "Cash on Delivery",
+      }),
+    });
+    expect(order.status).toBe(201);
+
+    const res = await adminReq("/api/admin/analytics");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      kpis: { totalRevenue: number; orderCount: number; sellerCount: number; productCount: number };
+      revenueByDay: { day: string; revenue: number }[];
+      topSellers: { revenue: number }[];
+      categories: { category: string }[];
+      orderStatuses: { status: string; count: number }[];
+    };
+    expect(body.kpis.totalRevenue).toBeGreaterThanOrEqual(3000);
+    expect(body.kpis.orderCount).toBeGreaterThanOrEqual(1);
+    expect(body.kpis.sellerCount).toBeGreaterThanOrEqual(1);
+    expect(body.kpis.productCount).toBeGreaterThanOrEqual(1);
+    // Contiguous 30-day series.
+    expect(body.revenueByDay.length).toBe(30);
+    // The order's revenue landed on a day inside the series.
+    expect(body.revenueByDay.some((d) => d.revenue >= 3000)).toBe(true);
+    expect(body.topSellers.length).toBeGreaterThan(0);
+    expect(body.categories.some((c) => c.category === "Goods")).toBe(true);
+    expect(body.orderStatuses.some((s) => s.status === "pending")).toBe(true);
+  });
+
+  test("non-admins cannot read admin analytics", async () => {
+    const buyer = await registerCustomer("An Nope", "an-nope@test.com");
+    const res = await customerReq(buyer, "/api/admin/analytics");
+    expect(res.status).toBe(403);
+  });
+});

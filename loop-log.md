@@ -46,6 +46,24 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **72 pass / 0 fail** ✅
 **Commit:** `5f3e614` + review fixes `242a5d1`
 
+## Loop 7 — Admin site-wide analytics
+
+**What shipped**
+- `GET /api/admin/analytics` (admin only): site KPIs (revenue, orders, users
+  by role, products, live auctions, bids, reviews, 14-day views), contiguous
+  30-day revenue series, top-5 sellers by 90-day revenue, category breakdown,
+  order-status distribution.
+- Reuses the defensive item/pid JSON guards from Loop 6; revenue attribution
+  is seller-aware (LATERAL sum matching product ownership).
+- Admin console: Analytics tab (first) — KPI grid, 30-day revenue bars,
+  top-sellers list, category revenue bars, order-status cards.
+- i18n en/ne; +2 tests (KPIs + 30-day series + order landing on a day;
+  non-admin 403).
+
+**Notes**
+- Revenue series is generated with `generate_series` in the DB timezone so the
+  client never re-keys dates.
+
 ## Loop 6 — Seller analytics dashboard
 
 **What shipped**

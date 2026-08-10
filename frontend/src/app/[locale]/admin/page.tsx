@@ -13,8 +13,10 @@ import QuotesManager from "@/components/admin/QuotesManager";
 import OrdersManager from "@/components/admin/OrdersManager";
 import SettingsManager from "@/components/admin/SettingsManager";
 import UsersManager from "@/components/admin/UsersManager";
+import AdminAnalytics from "@/components/admin/AdminAnalytics";
 
 const MANAGER_TABS = [
+  { id: "analytics", titleKey: "tabsAnalytics" },
   { id: "orders", titleKey: "tabsOrders" },
   { id: "shopOrders", titleKey: "tabsShopOrders" },
   { id: "quotes", titleKey: "tabsQuotes" },
@@ -214,6 +216,11 @@ export default function AdminPage() {
             resource={RESOURCES[active]}
             onToast={pushToast}
           />
+        ) : activeTab.id === "analytics" ? (
+          <div className="space-y-6">
+            <SectionHead title={t("analyticsTitle")} desc={t("analyticsDesc")} />
+            <AdminAnalytics />
+          </div>
         ) : activeTab.id === "orders" ? (
           <div className="space-y-6">
             <SectionHead title={t("bookingsTitle")} desc={t("bookingsDesc")} />

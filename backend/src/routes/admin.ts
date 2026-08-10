@@ -2,6 +2,129 @@ import { Elysia, t } from "elysia";
 import { all } from "../db";
 import { requireAdmin } from "./auth";
 
+/* ── Site-wide analytics (admin only) ───────────────────────────────────── */
+
+export const adminAnalyticsRoutes = new Elysia()
+  .onBeforeHandle(requireAdmin)
+  .get("/api/admin/analytics", async () => {
+    const SAFE_PID =
+      "CASE WHEN item ? 'productId' AND (item->>'productId') ~ '^[0-9]+$' " +
+      "THEN (item->>'productId')::int ELSE -1 END";
+    const ITEMS_JSON =
+      "CASE WHEN o.items IS NULL OR o.items = '' THEN '[]'::jsonb ELSE o.items::jsonb END";
+
+    const kpis = await all<Record<string, unknown>>(
+      `SELECT
+         (SELECT COUNT(*)::int FROM users) AS user_count,
+         (SELECT COUNT(*)::int FROM users WHERE role = 'customer') AS customer_count,
+         (SELECT COUNT(*)::int FROM users WHERE role = 'seller') AS seller_count,
+         (SELECT COUNT(*)::int FROM products) AS product_count,
+         (SELECT COUNT(*)::int FROM products WHERE auction = 1 AND status = 'active') AS active_auctions,
+         (SELECT COALESCE(SUM(bid_count), 0)::int FROM products) AS total_bids,
+         (SELECT COUNT(*)::int FROM product_reviews) AS total_reviews,
+         (SELECT COUNT(*)::int FROM orders WHERE status <> 'cancelled') AS order_count,
+         (SELECT COALESCE(SUM(total), 0)::float8 FROM orders WHERE status <> 'cancelled') AS total_revenue,
+         (SELECT COUNT(*)::int FROM product_views
+           WHERE viewed_at >= to_char(now() - interval '14 days', 'YYYY-MM-DD HH24:MI:SS')) AS views_14d`
+    );
+
+    // 30-day revenue curve (contiguous, DB timezone).
+    const revenueByDay = await all<{ day: string; revenue: number }>(
+      `SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
+              COALESCE(SUM(o.total), 0)::float8 AS revenue
+       FROM generate_series(now() - interval '29 days', now(), interval '1 day') AS d(day)
+       LEFT JOIN orders o
+         ON to_char(o.created_at::timestamp, 'YYYY-MM-DD') = to_char(d.day, 'YYYY-MM-DD')
+         AND o.status <> 'cancelled'
+       GROUP BY d.day ORDER BY d.day`
+    );
+
+    // Top sellers by attributed revenue over the last 90 days.
+    const topSellers = await all<{
+      id: number;
+      name: string;
+      shop_name: string | null;
+      orders: number;
+      revenue: number;
+    }>(
+      `SELECT u.id, u.name, u.shop_name,
+              COUNT(DISTINCT o.id)::int AS orders,
+              COALESCE(SUM(att.rev), 0)::float8 AS revenue
+       FROM users u
+       JOIN products p ON p.seller_id = u.id
+       JOIN orders o
+         ON o.created_at >= to_char(now() - interval '90 days', 'YYYY-MM-DD HH24:MI:SS')
+         AND o.status <> 'cancelled'
+       JOIN LATERAL (
+         SELECT SUM((item->>'price')::numeric * (item->>'quantity')::numeric) AS rev
+         FROM jsonb_array_elements(${ITEMS_JSON}) item
+         WHERE ${SAFE_PID} = p.id
+       ) att ON true
+       GROUP BY u.id, u.name, u.shop_name
+       ORDER BY revenue DESC
+       LIMIT 5`
+    );
+
+    // Category breakdown: products per category + 90-day attributed revenue.
+    const categories = await all<{
+      category: string;
+      products: number;
+      revenue: number;
+    }>(
+      `SELECT p.category,
+              COUNT(DISTINCT p.id)::int AS products,
+              COALESCE(SUM(att.rev), 0)::float8 AS revenue
+       FROM products p
+       LEFT JOIN LATERAL (
+         SELECT SUM((item->>'price')::numeric * (item->>'quantity')::numeric) AS rev
+         FROM orders o
+         CROSS JOIN LATERAL jsonb_array_elements(${ITEMS_JSON}) item
+         WHERE o.status <> 'cancelled'
+           AND o.created_at >= to_char(now() - interval '90 days', 'YYYY-MM-DD HH24:MI:SS')
+           AND ${SAFE_PID} = p.id
+       ) att ON true
+       GROUP BY p.category
+       ORDER BY revenue DESC, products DESC`
+    );
+
+    const orderStatuses = await all<{ status: string; count: number }>(
+      `SELECT status, COUNT(*)::int AS count FROM orders GROUP BY status ORDER BY count DESC`
+    );
+
+    const k = kpis[0] ?? {};
+    return {
+      kpis: {
+        userCount: Number(k.user_count ?? 0),
+        customerCount: Number(k.customer_count ?? 0),
+        sellerCount: Number(k.seller_count ?? 0),
+        productCount: Number(k.product_count ?? 0),
+        activeAuctions: Number(k.active_auctions ?? 0),
+        totalBids: Number(k.total_bids ?? 0),
+        totalReviews: Number(k.total_reviews ?? 0),
+        orderCount: Number(k.order_count ?? 0),
+        totalRevenue: Math.round(Number(k.total_revenue ?? 0) * 100) / 100,
+        views14d: Number(k.views_14d ?? 0),
+      },
+      revenueByDay: revenueByDay.map((r) => ({
+        day: r.day,
+        revenue: Math.round(Number(r.revenue) * 100) / 100,
+      })),
+      topSellers: topSellers.map((s) => ({
+        id: s.id,
+        name: s.name,
+        shopName: s.shop_name,
+        orders: Number(s.orders),
+        revenue: Math.round(Number(s.revenue) * 100) / 100,
+      })),
+      categories: categories.map((c) => ({
+        category: c.category,
+        products: Number(c.products),
+        revenue: Math.round(Number(c.revenue) * 100) / 100,
+      })),
+      orderStatuses,
+    };
+  });
+
 /* ── Generic resource CRUD (studio admin session required) ──────────────── */
 
 interface FieldDef {
