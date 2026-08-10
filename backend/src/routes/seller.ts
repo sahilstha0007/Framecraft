@@ -116,6 +116,144 @@ export const sellerRoutes = new Elysia()
         },
         { params: t.Object({ id: t.Numeric() }) }
       )
+      /* ── analytics: revenue, traffic & engagement for the seller's shop ── */
+      .get("/api/seller/analytics", async ({ user }: any) => {
+        const productRows = await all<
+          {
+            id: number;
+            name: string;
+            image: string;
+            price: number;
+            stock: number;
+            auction: number;
+            bid_count: number;
+            avg_rating: number | null;
+            review_count: number;
+            views: number;
+          }
+        >(
+          `SELECT p.id, p.name, p.image, p.price, p.stock, p.auction, p.bid_count,
+                  rv.avg_rating, rv.review_count,
+                  COALESCE(v.views_14d, 0)::int AS views
+           FROM products p
+           LEFT JOIN (
+             SELECT product_id, ROUND(AVG(rating)::numeric, 1) AS avg_rating,
+                    COUNT(*)::int AS review_count
+             FROM product_reviews GROUP BY product_id
+           ) rv ON rv.product_id = p.id
+           LEFT JOIN (
+             SELECT product_id, COUNT(*)::int AS views_14d
+             FROM product_views
+             WHERE viewed_at >= to_char(now() - interval '14 days', 'YYYY-MM-DD HH24:MI:SS')
+             GROUP BY product_id
+           ) v ON v.product_id = p.id
+           WHERE p.seller_id = $1
+           ORDER BY p.id DESC`,
+          [user.id]
+        );
+        const productIds = productRows.map((p) => p.id);
+
+        // Every non-cancelled order containing any of this seller's items.
+        const orderRows = await all<{ id: number; created_at: string; items: string; status: string }>(
+          `SELECT o.id, o.created_at, o.items, o.status
+           FROM orders o
+           WHERE o.status <> 'cancelled'
+             AND EXISTS (
+               SELECT 1 FROM jsonb_array_elements(o.items::jsonb) item
+               JOIN products p ON p.id = (item->>'productId')::int
+               WHERE p.seller_id = $1
+             )
+           ORDER BY o.created_at DESC`,
+          [user.id]
+        );
+
+        const parseItems = (raw: string): { productId: number; price: number; quantity: number }[] => {
+          try {
+            return JSON.parse(String(raw ?? "[]"));
+          } catch {
+            return [];
+          }
+        };
+
+        // Attribute revenue per product from the order line items.
+        const revenueByProduct = new Map<number, { revenue: number; units: number }>();
+        for (const o of orderRows) {
+          for (const it of parseItems(o.items)) {
+            if (productIds.includes(it.productId)) {
+              const amount = Number(it.price) * Number(it.quantity);
+              const cur = revenueByProduct.get(it.productId) ?? { revenue: 0, units: 0 };
+              cur.revenue += amount;
+              cur.units += Number(it.quantity);
+              revenueByProduct.set(it.productId, cur);
+            }
+          }
+        }
+
+        const topProducts = productRows
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            image: p.image,
+            price: Number(p.price),
+            auction: Boolean(p.auction),
+            bidCount: Number(p.bid_count),
+            avgRating: p.avg_rating == null ? null : Number(p.avg_rating),
+            reviewCount: Number(p.review_count),
+            views: Number(p.views),
+            revenue: revenueByProduct.get(p.id)?.revenue ?? 0,
+            units: revenueByProduct.get(p.id)?.units ?? 0,
+          }))
+          .sort((a, b) => b.revenue - a.revenue || b.views - a.views)
+          .slice(0, 5);
+
+        // 14-day traffic trend on this seller's products.
+        const viewsByDay = await all<{ day: string; views: number }>(
+          `SELECT to_char(viewed_at::timestamp, 'YYYY-MM-DD') AS day, COUNT(*)::int AS views
+           FROM product_views
+           WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
+             AND viewed_at >= to_char(now() - interval '13 days', 'YYYY-MM-DD HH24:MI:SS')
+           GROUP BY day ORDER BY day`,
+          [user.id]
+        );
+
+        // 14-day sales trend (only days inside the window).
+        const cutoff = new Date(Date.now() - 13 * 86400_000).toISOString().slice(0, 10);
+        const byDay = new Map<string, { orders: number; revenue: number }>();
+        for (const o of orderRows) {
+          const day = String(o.created_at).slice(0, 10);
+          if (day < cutoff) continue;
+          const cur = byDay.get(day) ?? { orders: 0, revenue: 0 };
+          cur.orders += 1;
+          let rev = 0;
+          for (const it of parseItems(o.items)) {
+            if (productIds.includes(it.productId)) rev += Number(it.price) * Number(it.quantity);
+          }
+          cur.revenue += rev;
+          byDay.set(day, cur);
+        }
+
+        const rated = productRows.filter((p) => p.avg_rating != null);
+        const summary = {
+          totalRevenue: Math.round(
+            [...revenueByProduct.values()].reduce((s, v) => s + v.revenue, 0) * 100
+          ) / 100,
+          orderCount: orderRows.length,
+          totalViews: productRows.reduce((s, p) => s + Number(p.views), 0),
+          totalBids: productRows.reduce((s, p) => s + Number(p.bid_count), 0),
+          avgRating: rated.length
+            ? Math.round((rated.reduce((s, p) => s + Number(p.avg_rating), 0) / rated.length) * 10) / 10
+            : null,
+          reviewCount: productRows.reduce((s, p) => s + Number(p.review_count), 0),
+          activeProducts: productRows.filter((p) => p.auction || Number(p.stock) > 0).length,
+        };
+
+        return {
+          summary,
+          topProducts,
+          viewsByDay,
+          ordersByDay: [...byDay.entries()].map(([day, v]) => ({ day, ...v })),
+        };
+      })
       /* ── own blog posts (including drafts) ── */
       .get("/api/seller/posts", async ({ user }: any) => {
         const rows = await all(

@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { RESOURCES } from "@/lib/adminConfig";
 import ResourceManager, { type Toast } from "@/components/admin/ResourceManager";
 import SellerOrdersManager from "@/components/admin/SellerOrdersManager";
+import SellerAnalytics from "@/components/admin/SellerAnalytics";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
@@ -83,6 +84,7 @@ export default function DashboardPage() {
   const postsResource = RESOURCES.find((r) => r.slug === "seller-posts")!;
 
   const tabs = [
+    { id: "analytics", label: t("tabAnalytics") },
     { id: "products", label: t("tabProducts") },
     { id: "posts", label: t("tabPosts") },
     { id: "orders", label: t("tabOrders") },
@@ -142,9 +144,10 @@ export default function DashboardPage() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 pb-24">
-        {active === 0 && <ResourceManager key="dp" resource={productResource} onToast={pushToast} />}
-        {active === 1 && <ResourceManager key="posts" resource={postsResource} onToast={pushToast} />}
-        {active === 2 && <SellerOrdersManager onToast={pushToast} />}
+        {active === 0 && <SellerAnalytics />}
+        {active === 1 && <ResourceManager key="dp" resource={productResource} onToast={pushToast} />}
+        {active === 2 && <ResourceManager key="posts" resource={postsResource} onToast={pushToast} />}
+        {active === 3 && <SellerOrdersManager onToast={pushToast} />}
       </main>
 
       {toast && (

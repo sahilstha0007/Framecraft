@@ -46,6 +46,23 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **72 pass / 0 fail** ✅
 **Commit:** `5f3e614` + review fixes `242a5d1`
 
+## Loop 6 — Seller analytics dashboard
+
+**What shipped**
+- `GET /api/seller/analytics` (seller/admin only): summary KPIs (revenue,
+  order count, 14-day views, bids, avg rating, active products), top-5 products
+  by revenue (with units/views/bids), 14-day views trend, 14-day orders trend.
+- Revenue attribution via `jsonb_array_elements` on order items + ownership
+  join — a seller only ever sees orders containing their own products.
+- Dashboard: new Analytics tab (first) — KPI cards, rating/active-product
+  cards, SVG 14-day bar chart with Views/Sales toggle, top-products table.
+- i18n en/ne; +3 tests (revenue aggregation, cross-seller isolation, 403).
+
+**Notes**
+- Cancelled orders are excluded from revenue/order counts.
+- `viewed_at`/`created_at` are TEXT timestamps — cast to timestamp for day
+  grouping; the 14-day trend window is filled client-side for continuity.
+
 ## Loop 5 — Trending now & picked for you (data-driven homepage)
 
 **What shipped**

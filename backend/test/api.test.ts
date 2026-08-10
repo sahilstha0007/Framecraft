@@ -1802,3 +1802,106 @@ describe("view tracking, trending & recommendations", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("seller analytics", () => {
+  test("analytics aggregates revenue, orders and traffic for the seller's shop", async () => {
+    const vendor = await registerRole("Analytics Vendor", "analytics-vendor@test.com", "seller", "Analytics Shop");
+    const created = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Analytics Widget",
+        category: "Goods",
+        price: 2000,
+        image: "https://images.unsplash.com/photo-x",
+        description: "For analytics tests",
+        stock: 50,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+    const pid = Number(((await created.json()) as { id: number }).id);
+
+    // Two customers order the widget (2 + 3 units) and one views it.
+    const c1 = await registerCustomer("An Buy One", "an-buy-one@test.com");
+    const o1 = await customerReq(c1, "/api/orders", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        items: [{ productId: pid, quantity: 2 }],
+        address: "Lalitpur",
+        paymentMethod: "Cash on Delivery",
+      }),
+    });
+    expect(o1.status).toBe(201);
+    const c2 = await registerCustomer("An Buy Two", "an-buy-two@test.com");
+    const o2 = await customerReq(c2, "/api/orders", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        items: [{ productId: pid, quantity: 3 }],
+        address: "Bhaktapur",
+        paymentMethod: "Cash on Delivery",
+      }),
+    });
+    expect(o2.status).toBe(201);
+    await post(`/api/products/${pid}/view`, {});
+
+    const res = await customerReq(vendor.cookie, "/api/seller/analytics");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      summary: { totalRevenue: number; orderCount: number; totalViews: number };
+      topProducts: { id: number; revenue: number; units: number; views: number }[];
+      ordersByDay: { day: string; orders: number; revenue: number }[];
+    };
+    expect(body.summary.totalRevenue).toBe(10000); // 2×2000 + 3×2000
+    expect(body.summary.orderCount).toBe(2);
+    const top = body.topProducts.find((p) => p.id === pid);
+    expect(top).toBeDefined();
+    expect(top!.revenue).toBe(10000);
+    expect(top!.units).toBe(5);
+    expect(top!.views).toBeGreaterThanOrEqual(1);
+    expect(body.ordersByDay.length).toBeGreaterThan(0);
+  });
+
+  test("another seller's revenue never leaks into your analytics", async () => {
+    const other = await registerRole("Other Vendor", "other-vendor@test.com", "seller", "Other Shop");
+    const created = await customerReq(other.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Other Thing",
+        category: "Goods",
+        price: 500,
+        image: "https://images.unsplash.com/photo-y",
+        description: "Not yours",
+        stock: 10,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+    const otherPid = Number(((await created.json()) as { id: number }).id);
+    const buyer = await registerCustomer("An Buyer", "an-buyer@test.com");
+    await customerReq(buyer, "/api/orders", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        items: [{ productId: otherPid, quantity: 1 }],
+        address: "Kathmandu",
+        paymentMethod: "Cash on Delivery",
+      }),
+    });
+
+    const fresh = await registerRole("Fresh Vendor", "fresh-vendor@test.com", "seller", "Fresh Shop");
+    const res = await customerReq(fresh.cookie, "/api/seller/analytics");
+    const body = (await res.json()) as { summary: { totalRevenue: number; orderCount: number } };
+    expect(body.summary.totalRevenue).toBe(0);
+    expect(body.summary.orderCount).toBe(0);
+  });
+
+  test("customers cannot read seller analytics", async () => {
+    const buyer = await registerCustomer("An Curious", "an-curious@test.com");
+    const res = await customerReq(buyer, "/api/seller/analytics");
+    expect(res.status).toBe(403);
+  });
+});
