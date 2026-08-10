@@ -14,11 +14,14 @@ export const activityRoutes = new Elysia().get("/api/activity", async () => {
             u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name
      FROM products p
      LEFT JOIN users u ON u.id = p.seller_id
-     WHERE p.auction = 0 OR p.status = 'active'
+     -- Only sellable items: live auctions or fixed-price with stock left.
+     WHERE (p.auction = 1 AND p.status = 'active') OR (p.auction = 0 AND p.stock > 0)
      ORDER BY p.id DESC
      LIMIT 6`
   );
 
+  // Display names are the users' own chosen public names (like usernames on
+  // any marketplace) — this endpoint is intentionally public and PII-free.
   const recentWins = await all(
     `SELECT p.id AS product_id, p.name AS product_name, p.image AS product_image,
             p.ends_at, u.name AS winner_name

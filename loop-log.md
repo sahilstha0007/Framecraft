@@ -46,6 +46,10 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **72 pass / 0 fail** ✅
 **Commit:** `5f3e614` + review fixes `242a5d1`
 
+## Loop 10 — Auction ending-soon alerts
+
+(placeholder — filled in below)
+
 ## Loop 9 — Marketplace pulse (live activity + fresh arrivals)
 
 **What shipped**

@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Gavel, Star, Store, ShoppingBag, Loader2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { ArrowRight, Gavel, Loader2, ShoppingBag, Star, Store } from "lucide-react";
+import { useTranslations } from "next-intl";
 import ProductCard, { type ShopProduct } from "./ProductCard";
 import ScrollReveal from "./ScrollReveal";
 import { api } from "@/lib/api";
 import { Link } from "@/i18n/navigation";
-import { ArrowRight } from "lucide-react";
 
 interface PulseData {
   freshArrivals: ShopProduct[];
@@ -17,20 +16,20 @@ interface PulseData {
   newSellers: { id: number; name: string; shopName: string | null; avatar: string | null; createdAt: string }[];
 }
 
-function timeAgo(date: string | null, locale: string): string {
-  if (!date) return "";
-  const d = new Date(date.replace(" ", "T")).getTime();
-  if (Number.isNaN(d)) return "";
-  const mins = Math.max(1, Math.floor((Date.now() - d) / 60000));
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
+function timeAgo(date: string | null): { label: string; ts: number } {
+  if (!date) return { label: "", ts: 0 };
+  const ts = new Date(date.replace(" ", "T")).getTime();
+  if (Number.isNaN(ts)) return { label: "", ts: 0 };
+  const mins = Math.max(1, Math.floor((Date.now() - ts) / 60000));
+  let label: string;
+  if (mins < 60) label = `${mins}m`;
+  else if (mins < 1440) label = `${Math.floor(mins / 60)}h`;
+  else label = `${Math.floor(mins / 1440)}d`;
+  return { label, ts };
 }
 
 export default function MarketplacePulse() {
   const t = useTranslations("home");
-  const locale = useLocale();
   const [data, setData] = useState<PulseData | null>(null);
 
   useEffect(() => {
@@ -64,25 +63,25 @@ export default function MarketplacePulse() {
       key: `win-${w.productId}-${w.endedAt}`,
       icon: <Gavel size={13} className="text-gold-400" />,
       text: t("pulseWin", { name: w.productName, winner: w.winnerName ?? "—" }),
-      time: timeAgo(w.endedAt, locale),
+      time: timeAgo(w.endedAt),
       href: `/products/${w.productId}`,
     })),
     ...data.recentReviews.map((r) => ({
       key: `rev-${r.productId}-${r.createdAt}`,
       icon: <Star size={13} className="text-gold-400" />,
       text: t("pulseReview", { name: r.productName, reviewer: r.reviewerName ?? "—", rating: r.rating }),
-      time: timeAgo(r.createdAt, locale),
+      time: timeAgo(r.createdAt),
       href: `/products/${r.productId}`,
     })),
     ...data.newSellers.map((s) => ({
       key: `seller-${s.id}`,
       icon: <Store size={13} className="text-gold-400" />,
       text: t("pulseSeller", { shop: s.shopName ?? s.name }),
-      time: timeAgo(s.createdAt, locale),
+      time: timeAgo(s.createdAt),
       href: `/sellers/${s.id}`,
     })),
   ]
-    .sort((a, b) => a.time.length - b.time.length || a.text.localeCompare(b.text))
+    .sort((a, b) => b.time.ts - a.time.ts || a.text.localeCompare(b.text))
     .slice(0, 9);
 
   return (
@@ -169,7 +168,7 @@ export default function MarketplacePulse() {
                       {item.text}
                     </span>
                     <span className="flex-shrink-0 font-mono text-[0.55rem] text-charcoal-400 dark:text-white/25 pt-0.5">
-                      {item.time}
+                      {item.time.label}
                     </span>
                   </Link>
                 </motion.div>
