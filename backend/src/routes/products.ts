@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { all } from "../db";
 import { notify } from "./notifications";
+import { getUserBySession } from "./auth";
 
 function toProduct(row: unknown, extra?: Record<string, unknown>) {
   const r = row as Record<string, unknown>;
@@ -131,6 +132,146 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
       })
     );
   })
+  // ── Trending: rank every sellable product by live marketplace signals ──
+  // Score = 2× views (last 14 days) + 4× bid count + 3× review count.
+  .get(
+    "/trending",
+    async () => {
+      await closeExpiredAuctions();
+      const rows = await all(
+        `SELECT p.*,
+                u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name,
+                rv.avg_rating, rv.review_count,
+                COALESCE(v.views_14d, 0)::int AS views,
+                (COALESCE(v.views_14d, 0) * 2 + p.bid_count * 4 + COALESCE(rv.review_count, 0) * 3)::int AS score
+         FROM products p
+         LEFT JOIN users u ON u.id = p.seller_id
+         LEFT JOIN (
+           SELECT product_id, COUNT(*)::int AS views_14d
+           FROM product_views
+           WHERE viewed_at >= to_char(now() - interval '14 days', 'YYYY-MM-DD HH24:MI:SS')
+           GROUP BY product_id
+         ) v ON v.product_id = p.id
+         LEFT JOIN (
+           SELECT product_id, ROUND(AVG(rating)::numeric, 1) AS avg_rating,
+                  COUNT(*)::int AS review_count
+           FROM product_reviews GROUP BY product_id
+         ) rv ON rv.product_id = p.id
+         WHERE (p.auction = 1 AND p.status = 'active') OR (p.auction = 0 AND p.stock > 0)
+         ORDER BY score DESC, p.bid_count DESC, p.id ASC
+         LIMIT 8`
+      );
+      return rows.map((r) => {
+        const row = r as Record<string, unknown>;
+        return toProduct(row, {
+          sellerName: row.seller_name ?? null,
+          sellerAvatar: row.seller_avatar ?? null,
+          sellerShopName: row.seller_shop_name ?? null,
+          avgRating: row.avg_rating == null ? null : Number(row.avg_rating),
+          reviewCount: Number(row.review_count ?? 0),
+          views: Number(row.views ?? 0),
+          score: Number(row.score ?? 0),
+        });
+      });
+    }
+  )
+  // ── Picked for you: category co-occurrence recommendations ────────────
+  // `basedOn` is a comma-separated list of product ids the visitor has viewed.
+  // We surface other sellable products that share a category, ranked by the
+  // same trending score, each tagged with which viewed product drove it.
+  .get(
+    "/recommendations",
+    async ({ query }) => {
+      const ids = String(query.basedOn ?? "")
+        .split(",")
+        .map((s) => Number(s.trim()))
+        .filter((n) => Number.isInteger(n) && n > 0);
+      const unique = [...new Set(ids)].slice(0, 12);
+      if (!unique.length) return { items: [], basedOn: [] };
+
+      const baseRows = await all<{ id: number; name: string; category: string }>(
+        `SELECT id, name, category FROM products WHERE id IN (${unique
+          .map((_, i) => `$${i + 1}`)
+          .join(",")})`,
+        unique
+      );
+      if (!baseRows.length) return { items: [], basedOn: [] };
+      const categories = [...new Set(baseRows.map((r) => r.category))];
+
+      // Postgres via Bun.sql doesn't encode JS-array params, so the IN lists
+      // are built with explicit placeholders (both lists are non-empty here).
+      const catPh = categories.map((_, i) => `$${i + 1}`).join(",");
+      const idPh = unique
+        .map((_, i) => `$${categories.length + i + 1}`)
+        .join(",");
+      const rows = await all(
+        `SELECT p.*,
+                u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name,
+                rv.avg_rating, rv.review_count,
+                COALESCE(v.views_14d, 0)::int AS views,
+                (COALESCE(v.views_14d, 0) * 2 + p.bid_count * 4 + COALESCE(rv.review_count, 0) * 3)::int AS score
+         FROM products p
+         LEFT JOIN users u ON u.id = p.seller_id
+         LEFT JOIN (
+           SELECT product_id, COUNT(*)::int AS views_14d
+           FROM product_views
+           WHERE viewed_at >= to_char(now() - interval '14 days', 'YYYY-MM-DD HH24:MI:SS')
+           GROUP BY product_id
+         ) v ON v.product_id = p.id
+         LEFT JOIN (
+           SELECT product_id, ROUND(AVG(rating)::numeric, 1) AS avg_rating,
+                  COUNT(*)::int AS review_count
+           FROM product_reviews GROUP BY product_id
+         ) rv ON rv.product_id = p.id
+         WHERE p.category IN (${catPh})
+           AND p.id NOT IN (${idPh})
+           AND ((p.auction = 1 AND p.status = 'active') OR (p.auction = 0 AND p.stock > 0))
+         ORDER BY score DESC, p.id ASC
+         LIMIT 8`,
+        [...categories, ...unique]
+      );
+
+      const items = rows.map((r) => {
+        const row = r as Record<string, unknown>;
+        // The viewed product that shares this item's category (first match).
+        const match = baseRows.find((b) => b.category === row.category);
+        return toProduct(row, {
+          sellerName: row.seller_name ?? null,
+          sellerAvatar: row.seller_avatar ?? null,
+          sellerShopName: row.seller_shop_name ?? null,
+          avgRating: row.avg_rating == null ? null : Number(row.avg_rating),
+          reviewCount: Number(row.review_count ?? 0),
+          views: Number(row.views ?? 0),
+          score: Number(row.score ?? 0),
+          reason: match ? { id: match.id, name: match.name } : null,
+        });
+      });
+
+      return {
+        items,
+        basedOn: baseRows.map((b) => ({ id: b.id, name: b.name })),
+      };
+    }
+  )
+  // ── View tracking: fire-and-forget ping from the product page. Optional
+  // auth — guests count too (user_id NULL). Feeds the trending score.
+  .post(
+    "/:id/view",
+    async ({ params, request, set }) => {
+      const found = await all("SELECT id FROM products WHERE id = $1", [params.id]);
+      if (!found[0]) {
+        set.status = 404;
+        return { error: "Product not found" };
+      }
+      const user = await getUserBySession(request);
+      await all("INSERT INTO product_views (product_id, user_id) VALUES ($1, $2)", [
+        params.id,
+        user?.id ?? null,
+      ]);
+      return { ok: true };
+    },
+    { params: t.Object({ id: t.Numeric() }) }
+  )
   .get(
     "/:id",
     async ({ params, set }) => {

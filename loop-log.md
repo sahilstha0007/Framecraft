@@ -46,6 +46,25 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **72 pass / 0 fail** ✅
 **Commit:** `5f3e614` + review fixes `242a5d1`
 
+## Loop 5 — Trending now & picked for you (data-driven homepage)
+
+**What shipped**
+- `product_views` table + `POST /api/products/:id/view` (optional-auth view tracking).
+- `GET /api/products/trending` — top-8 sellable products ranked by live score
+  (2× views + 4× bids + 3× reviews over 14 days).
+- `GET /api/products/recommendations?basedOn=1,2` — category co-occurrence
+  recommendations, each tagged with the viewed product that drove it.
+- `useBrowsingHistory` hook (localStorage + backend ping); product page records views.
+- Homepage: TrendingNow section (LIVE pulse, rank badges, view/bid/review chips)
+  + PickedForYou section (reason lines "Because you viewed X", clear-history).
+- i18n en/ne; +5 tests (views feed trending, score ordering, recommendation
+  reasons, unknown-base empty, 404 on missing product).
+
+**Notes**
+- Bun.sql can't encode JS-array params → generated IN placeholders instead of `ANY($n::int[])`.
+- Trending excludes out-of-stock fixed-price items; test creates its own product
+  because earlier suites deplete seeded stock.
+
 ## Loop 4 — Notifications center (in-app + WhatsApp) ✅
 **Plan:** in-app notification center fed by marketplace events; best-effort WhatsApp nudges.
 **Changes:**

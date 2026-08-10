@@ -15,6 +15,8 @@ import Testimonials from "@/components/Testimonials";
 import Newsletter from "@/components/Newsletter";
 import ContactForm from "@/components/ContactForm";
 import ScrollReveal from "@/components/ScrollReveal";
+import TrendingNow from "@/components/TrendingNow";
+import PickedForYou from "@/components/PickedForYou";
 import dynamic from "next/dynamic";
 
 // Shared placeholder for the assembly section — shown both while the chunk
@@ -389,6 +391,12 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* ── TRENDING NOW: live marketplace signals (views/bids/reviews) ── */}
+      <TrendingNow />
+
+      {/* ── PICKED FOR YOU: browsing-history recommendations ── */}
+      <PickedForYou />
 
       <MorphDivider />
 

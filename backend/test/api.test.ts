@@ -55,7 +55,8 @@ beforeAll(async () => {
     DROP TABLE IF EXISTS sessions, users, orders, products, custom_quotes,
       newsletter_subscribers, contacts, bookings, mat_options, glass_types, team_members,
       testimonials, services, gallery_items, frames, bids, posts, follows,
-      product_likes, comments, product_reviews, order_events CASCADE;
+      product_likes, comments, product_reviews, order_events, product_views,
+      notifications CASCADE;
   `);
   await migrate();
 
@@ -1690,5 +1691,89 @@ describe("notification center", () => {
       unreadCount: number;
     };
     expect(after.unreadCount).toBe(0);
+  });
+});
+
+describe("view tracking, trending & recommendations", () => {
+  test("product views are recorded (guest + signed-in) and feed trending", async () => {
+    // Own product with generous stock so other suites can't deplete it.
+    const vendor = await registerRole("Trend Vendor", "trend-vendor@test.com", "seller", "Trend Shop");
+    const created = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Trending Test Piece",
+        category: "Frames",
+        price: 5000,
+        image: "https://images.unsplash.com/photo-x",
+        description: "Trending test piece.",
+        stock: 20,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+    const pid = Number(((await created.json()) as { id: number }).id);
+
+    const view = await post(`/api/products/${pid}/view`, {});
+    expect(view.status).toBe(200);
+    const cookie = await registerCustomer("Viewer A", "viewer-a@test.com");
+    const signed = await customerReq(cookie, `/api/products/${pid}/view`, { method: "POST" });
+    expect(signed.status).toBe(200);
+
+    // Enough views to guarantee the fresh product surfaces in the top-8 list.
+    for (let i = 0; i < 10; i++) {
+      await post(`/api/products/${pid}/view`, {});
+    }
+    const trending = (await (await get("/api/products/trending")).json()) as {
+      id: number;
+      views: number;
+      score: number;
+    }[];
+    const found = trending.find((p) => p.id === pid);
+    expect(found).toBeDefined();
+    expect(found!.views).toBeGreaterThanOrEqual(12);
+    expect(found!.score).toBeGreaterThan(0);
+  });
+
+  test("trending returns a score-sorted list of sellable products", async () => {
+    const res = await get("/api/products/trending");
+    expect(res.status).toBe(200);
+    const items = (await res.json()) as { score: number; stock: number; auction: boolean; status: string }[];
+    expect(items.length).toBeGreaterThan(0);
+    for (let i = 1; i < items.length; i++) {
+      expect(items[i - 1].score).toBeGreaterThanOrEqual(items[i].score);
+    }
+    // Out-of-stock fixed-price items never trend.
+    expect(items.some((p) => !p.auction && p.stock <= 0)).toBe(false);
+  });
+
+  test("recommendations share a category and explain the reason", async () => {
+    const res = await get("/api/products/recommendations?basedOn=1,2");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      items: { id: number; category: string; reason: { id: number; name: string } | null }[];
+      basedOn: { id: number; name: string }[];
+    };
+    expect(body.basedOn.length).toBe(2);
+    expect(body.items.length).toBeGreaterThan(0);
+    for (const item of body.items) {
+      expect([1, 2]).not.toContain(item.id);
+      expect(item.category).toBe("Frames");
+      expect(item.reason).not.toBeNull();
+      expect([1, 2]).toContain(item.reason!.id);
+    }
+  });
+
+  test("recommendations with an unknown base return empty", async () => {
+    const res = await get("/api/products/recommendations?basedOn=999999");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { items: unknown[]; basedOn: unknown[] };
+    expect(body.items).toEqual([]);
+    expect(body.basedOn).toEqual([]);
+  });
+
+  test("viewing a missing product is a 404", async () => {
+    const res = await post("/api/products/999999/view", {});
+    expect(res.status).toBe(404);
   });
 });

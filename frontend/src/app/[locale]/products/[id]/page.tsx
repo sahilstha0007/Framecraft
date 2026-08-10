@@ -20,6 +20,7 @@ import { useParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
+import { useBrowsingHistory } from "@/lib/useBrowsingHistory";
 import { formatNPR } from "@/lib/nepali";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge, { statusKey } from "@/components/StatusBadge";
@@ -87,6 +88,7 @@ export default function ProductPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { add } = useCart();
+  const { record } = useBrowsingHistory();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [engagement, setEngagement] = useState<{ likeCount: number; likedByMe: boolean } | null>(null);
@@ -117,6 +119,9 @@ export default function ProductPage() {
       const p = await api.get<Product>(`/api/products/${params.id}`);
       setProduct(p);
       setBidAmount("");
+      // Record the visit — feeds the homepage trending score and the
+      // "Picked for you" recommendations.
+      record({ id: p.id, name: p.name, category: p.category, image: p.image, price: p.price });
       const eng = await api.get<typeof engagement>(`/api/products/${params.id}/engagement`).catch(() => null);
       setEngagement(eng);
       const b = await api.list<Bid>(`/api/products/${params.id}/bids`).catch(() => []);
@@ -140,7 +145,7 @@ export default function ProductPage() {
     } catch (e) {
       setLoadError(e instanceof ApiError ? e.message : "Failed to load product");
     }
-  }, [params.id]);
+  }, [params.id, record]);
 
   useEffect(() => {
     load();
