@@ -64,6 +64,10 @@ export const reviewsRoutes = new Elysia()
             set.status = 404;
             return { error: "Product not found" };
           }
+          if (product[0].seller_id === user.id) {
+            set.status = 400;
+            return { error: "You cannot review your own product" };
+          }
           if (product[0].seller_id && product[0].seller_id !== user.id) {
             await notify(
               product[0].seller_id,

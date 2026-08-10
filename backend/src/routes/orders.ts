@@ -304,7 +304,7 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
               "order_status",
               `Order #${params.id} is now “${body.status}”`,
               "Your order status just changed — follow it on the timeline.",
-              "/account?tab=orders"
+              "/account"
             );
           }
           if (body.status && existing[0]?.phone) {

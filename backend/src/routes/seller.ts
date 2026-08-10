@@ -241,7 +241,7 @@ export const sellerRoutes = new Elysia()
               "order_status",
               `Order #${params.id} is now “${body.status}”`,
               "Your order status just changed — follow it on the timeline.",
-              "/account?tab=orders"
+              "/account"
             );
           }
           if (body.status && rows[0].phone) {

@@ -170,6 +170,7 @@ export const socialRoutes = new Elysia()
         async ({ body, set, user }: any) => {
           // Target must exist; the owner is the one we notify.
           let ownerId: number | null = null;
+          let postSlug: string | null = null;
           if (body.targetType === "product") {
             const p = await all<{ id: number; seller_id: number | null }>(
               "SELECT id, seller_id FROM products WHERE id = $1",
@@ -181,8 +182,8 @@ export const socialRoutes = new Elysia()
             }
             ownerId = p[0].seller_id;
           } else {
-            const p = await all<{ id: number; seller_id: number }>(
-              "SELECT id, seller_id FROM posts WHERE id = $1",
+            const p = await all<{ id: number; seller_id: number; slug: string }>(
+              "SELECT id, seller_id, slug FROM posts WHERE id = $1",
               [body.targetId]
             );
             if (!p[0]) {
@@ -190,6 +191,7 @@ export const socialRoutes = new Elysia()
               return { error: "Post not found" };
             }
             ownerId = p[0].seller_id;
+            postSlug = p[0].slug;
           }
           const inserted = await all<{ id: number }>(
             `INSERT INTO comments (target_type, target_id, user_id, content)
@@ -204,7 +206,7 @@ export const socialRoutes = new Elysia()
               body.content.trim().slice(0, 140),
               body.targetType === "product"
                 ? `/products/${body.targetId}`
-                : `/blog/${body.targetId}`
+                : `/blog/${postSlug ?? body.targetId}`
             );
           }
           set.status = 201;

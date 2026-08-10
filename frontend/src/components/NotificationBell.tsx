@@ -86,8 +86,6 @@ export default function NotificationBell() {
 
   if (!user) return null;
 
-  const Icon = TYPE_ICONS[items?.find((n) => !n.read)?.type ?? "new_order"] ?? Bell;
-
   return (
     <div ref={ref} className="relative">
       <button
