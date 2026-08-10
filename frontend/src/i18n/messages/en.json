@@ -747,7 +747,22 @@
     "follow": "Follow",
     "following": "Following",
     "followers": "followers",
-    "statusCancelled": "Cancelled"
+    "statusCancelled": "Cancelled",
+    "reviewsTitle": "Reviews",
+    "averageRating": "{rating} out of 5",
+    "noReviews": "No reviews yet.",
+    "beFirstReview": "Be the first to share your experience.",
+    "writeReview": "Write a review",
+    "yourRating": "Your rating",
+    "reviewTitlePlaceholder": "Title (optional)",
+    "reviewBodyPlaceholder": "What did you think?",
+    "submitReview": "Submit review",
+    "reviewSubmitted": "Review submitted — thank you!",
+    "alreadyReviewed": "You've reviewed this piece.",
+    "reply": "Reply",
+    "replyPlaceholder": "Reply to this review…",
+    "replySubmitted": "Reply posted.",
+    "seller": "Seller"
   },
   "sellersPage": {
     "eyebrow": "Our artisans",
@@ -774,7 +789,8 @@
     "follow": "Follow",
     "following": "Following",
     "noProducts": "No products yet.",
-    "backToSellers": "Back to sellers"
+    "backToSellers": "Back to sellers",
+    "rating": "Rating"
   },
   "blogPage": {
     "eyebrow": "From the studio floor",

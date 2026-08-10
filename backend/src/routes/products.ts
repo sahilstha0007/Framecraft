@@ -40,9 +40,15 @@ export async function closeExpiredAuctions(): Promise<void> {
 
 const PRODUCT_SELECT = `
   SELECT p.*,
-         u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name
+         u.name AS seller_name, u.avatar AS seller_avatar, u.shop_name AS seller_shop_name,
+         rv.avg_rating, rv.review_count
   FROM products p
-  LEFT JOIN users u ON u.id = p.seller_id`;
+  LEFT JOIN users u ON u.id = p.seller_id
+  LEFT JOIN (
+    SELECT product_id, ROUND(AVG(rating)::numeric, 1) AS avg_rating,
+           COUNT(*)::int AS review_count
+    FROM product_reviews GROUP BY product_id
+  ) rv ON rv.product_id = p.id`;
 
 /** Public shop reads. Writes go through the seller-scoped or admin CRUD. */
 export const productsRoutes = new Elysia({ prefix: "/api/products" })
@@ -98,6 +104,11 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
         sellerName: (r as Record<string, unknown>).seller_name ?? null,
         sellerAvatar: (r as Record<string, unknown>).seller_avatar ?? null,
         sellerShopName: (r as Record<string, unknown>).seller_shop_name ?? null,
+        avgRating:
+          (r as Record<string, unknown>).avg_rating == null
+            ? null
+            : Number((r as Record<string, unknown>).avg_rating),
+        reviewCount: Number((r as Record<string, unknown>).review_count ?? 0),
       })
     );
   })
@@ -120,6 +131,8 @@ export const productsRoutes = new Elysia({ prefix: "/api/products" })
         sellerAvatar: r.seller_avatar ?? null,
         sellerShopName: r.seller_shop_name ?? null,
         actualBidCount: Number(bidRows[0]?.count ?? 0),
+        avgRating: r.avg_rating == null ? null : Number(r.avg_rating),
+        reviewCount: Number(r.review_count ?? 0),
       });
     },
     { params: t.Object({ id: t.Numeric() }) }

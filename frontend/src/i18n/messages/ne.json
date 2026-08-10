@@ -745,7 +745,22 @@
     "follow": "फलो गर्नुहोस्",
     "following": "फलो गर्दै हुनुहुन्छ",
     "followers": "फलोअरहरू",
-    "statusCancelled": "रद्द"
+    "statusCancelled": "रद्द",
+    "reviewsTitle": "समीक्षाहरू",
+    "averageRating": "{rating} मध्ये ५",
+    "noReviews": "अहिलेसम्म कुनै समीक्षा छैन।",
+    "beFirstReview": "आफ्नो अनुभव साझा गर्ने पहिलो बन्नुहोस्।",
+    "writeReview": "समीक्षा लेख्नुहोस्",
+    "yourRating": "तपाईंको मूल्याङ्कन",
+    "reviewTitlePlaceholder": "शीर्षक (वैकल्पिक)",
+    "reviewBodyPlaceholder": "तपाईंलाई कस्तो लाग्यो?",
+    "submitReview": "समीक्षा पेश गर्नुहोस्",
+    "reviewSubmitted": "समीक्षा पेश भयो — धन्यवाद!",
+    "alreadyReviewed": "तपाईंले यो वस्तुको समीक्षा गरिसक्नुभएको छ।",
+    "reply": "जवाफ",
+    "replyPlaceholder": "यो समीक्षाको जवाफ दिनुहोस्…",
+    "replySubmitted": "जवाफ पेश भयो।",
+    "seller": "बिक्रेता"
   },
   "sellersPage": {
     "eyebrow": "हाम्रा कालीगढहरू",
@@ -772,7 +787,8 @@
     "follow": "फलो गर्नुहोस्",
     "following": "फलो गर्दै हुनुहुन्छ",
     "noProducts": "अहिलेसम्म कुनै उत्पादन छैन।",
-    "backToSellers": "विक्रेताहरूमा फर्कनुहोस्"
+    "backToSellers": "विक्रेताहरूमा फर्कनुहोस्",
+    "rating": "मूल्याङ्कन"
   },
   "blogPage": {
     "eyebrow": "स्टुडियोबाट",

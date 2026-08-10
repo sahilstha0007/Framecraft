@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ShoppingBag, Check, Gavel, Timer } from "lucide-react";
+import { ShoppingBag, Check, Gavel, Timer, Star } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import NextImage from "next/image";
 import { Link } from "@/i18n/navigation";
@@ -26,6 +26,8 @@ export interface ShopProduct {
   bidCount?: number;
   status?: string;
   sellerId?: number | null;
+  avgRating?: number | null;
+  reviewCount?: number;
 }
 
 export default function ProductCard({ product, index }: { product: ShopProduct; index: number }) {
@@ -81,9 +83,20 @@ export default function ProductCard({ product, index }: { product: ShopProduct; 
 
       {/* Content */}
       <div className="p-5">
-        <span className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-gold-400/70">
-          {product.category}
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-gold-400/70">
+            {product.category}
+          </span>
+          {product.reviewCount ? (
+            <span
+              className="inline-flex items-center gap-1 text-[0.6rem] font-mono tracking-wider text-charcoal-500 dark:text-white/40"
+              title={`${product.avgRating} / 5`}
+            >
+              <Star size={10} className="fill-gold-400 text-gold-400" />
+              {product.avgRating} ({product.reviewCount})
+            </span>
+          ) : null}
+        </div>
         <h3 className="mt-1.5 text-lg font-heading font-semibold text-charcoal-900 dark:text-white leading-snug">
           {product.name}
         </h3>

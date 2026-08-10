@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Send,
   ShoppingBag,
+  Star,
   Store,
   Timer,
 } from "lucide-react";
@@ -59,6 +60,24 @@ interface Comment {
   createdAt: string;
 }
 
+interface Review {
+  id: number;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  reply: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+  userId: number;
+  author: { name: string; avatar: string | null };
+}
+
+interface ReviewsData {
+  average: number | null;
+  count: number;
+  reviews: Review[];
+}
+
 export default function ProductPage() {
   const t = useTranslations("productPage");
   const ts = useTranslations("shopPage");
@@ -83,6 +102,15 @@ export default function ProductPage() {
   const [comment, setComment] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [added, setAdded] = useState(false);
+  const [reviews, setReviews] = useState<ReviewsData | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewOk, setReviewOk] = useState(false);
+  const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
+  const [replyBusyId, setReplyBusyId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -97,6 +125,10 @@ export default function ProductPage() {
         .list<Comment>(`/api/comments?targetType=product&targetId=${params.id}`)
         .catch(() => []);
       setComments(c);
+      const rv = await api
+        .get<ReviewsData>(`/api/products/${params.id}/reviews`)
+        .catch(() => null);
+      setReviews(rv);
       if (p.sellerId) {
         const s = await api
           .get<{ followedByMe: boolean; followerCount: number }>(`/api/sellers/${p.sellerId}`)
@@ -249,6 +281,83 @@ export default function ProductPage() {
     setComments((prev) => (prev ?? []).filter((c) => c.id !== id));
   };
 
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || reviewRating < 1) return;
+    setReviewBusy(true);
+    setReviewError(null);
+    setReviewOk(false);
+    try {
+      await api.create(`/api/products/${params.id}/reviews`, {
+        rating: reviewRating,
+        title: reviewTitle.trim() || undefined,
+        body: reviewBody.trim() || undefined,
+      });
+      setReviewOk(true);
+      setReviewRating(0);
+      setReviewTitle("");
+      setReviewBody("");
+      const rv = await api
+        .get<ReviewsData>(`/api/products/${params.id}/reviews`)
+        .catch(() => null);
+      if (rv) setReviews(rv);
+    } catch (err) {
+      setReviewError(err instanceof ApiError ? err.message : "Review failed");
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
+  const deleteReview = async (id: number) => {
+    await api.remove(`/api/reviews`, id).catch(() => {});
+    setReviews((prev) =>
+      prev
+        ? {
+            average: prev.reviews.length === 1 ? null : prev.average,
+            count: Math.max(0, prev.count - 1),
+            reviews: prev.reviews.filter((r) => r.id !== id),
+          }
+        : prev
+    );
+  };
+
+  const submitReply = async (id: number) => {
+    const text = (replyDrafts[id] ?? "").trim();
+    if (!text) return;
+    setReplyBusyId(id);
+    try {
+      await api.put(`/api/reviews/${id}/reply`, { reply: text });
+      const rv = await api
+        .get<ReviewsData>(`/api/products/${params.id}/reviews`)
+        .catch(() => null);
+      if (rv) setReviews(rv);
+      setReplyDrafts((d) => ({ ...d, [id]: "" }));
+    } catch {
+      /* ignore */
+    } finally {
+      setReplyBusyId(null);
+    }
+  };
+
+  const myReview =
+    user && reviews ? reviews.reviews.find((r) => r.userId === user.id) : null;
+  const canReply =
+    !!user &&
+    !!product?.sellerId &&
+    (user.id === product.sellerId || user.role === "admin");
+
+  const StarRow = ({ value, size = 13 }: { value: number; size?: number }) => (
+    <span className="inline-flex items-center gap-0.5" aria-label={t("averageRating", { rating: value })}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={size}
+          className={i <= Math.round(value) ? "fill-gold-400 text-gold-400" : "text-charcoal-300 dark:text-white/15"}
+        />
+      ))}
+    </span>
+  );
+
   const label = (s: string) => t(statusKey(s));
 
   if (loadError) {
@@ -314,6 +423,14 @@ export default function ProductPage() {
               <h1 className="mt-2 font-heading text-3xl sm:text-4xl font-semibold text-charcoal-900 dark:text-white leading-tight">
                 {product.name}
               </h1>
+              {reviews && reviews.count > 0 && (
+                <div className="mt-2.5 flex items-center gap-2">
+                  <StarRow value={reviews.average ?? 0} />
+                  <span className="text-xs text-charcoal-500 dark:text-white/45">
+                    {reviews.average} · {reviews.count}
+                  </span>
+                </div>
+              )}
               <p className="mt-4 text-sm text-charcoal-600 dark:text-white/50 leading-relaxed">
                 {product.description}
               </p>
@@ -528,6 +645,182 @@ export default function ProductPage() {
                     >
                       {t("delete")}
                     </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Reviews & ratings */}
+          <div className="mt-14 max-w-3xl">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 className="font-heading text-xl font-semibold text-charcoal-900 dark:text-white">
+                {t("reviewsTitle")} ({reviews?.count ?? 0})
+              </h2>
+              {reviews && reviews.count > 0 && (
+                <div className="flex items-center gap-2">
+                  <StarRow value={reviews.average ?? 0} />
+                  <span className="text-xs text-charcoal-500 dark:text-white/45">
+                    {reviews.average}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {user && !myReview && (
+              <form
+                onSubmit={submitReview}
+                className="mb-6 p-5 border border-charcoal-200/70 dark:border-white/[0.08] bg-charcoal-900/[0.02] dark:bg-white/[0.02]"
+              >
+                <div className="flex items-center gap-1 mb-3">
+                  <span className="text-xs uppercase tracking-wider text-charcoal-500 dark:text-white/40 mr-2">
+                    {t("yourRating")}
+                  </span>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setReviewRating(i)}
+                      aria-label={`${i} star`}
+                      className="cursor-pointer"
+                    >
+                      <Star
+                        size={18}
+                        className={`transition-colors ${
+                          i <= reviewRating
+                            ? "fill-gold-400 text-gold-400"
+                            : "text-charcoal-300 dark:text-white/20 hover:text-gold-300"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={reviewTitle}
+                  onChange={(e) => setReviewTitle(e.target.value)}
+                  placeholder={t("reviewTitlePlaceholder")}
+                  className="w-full px-3 py-2 mb-2 bg-white dark:bg-white/[0.04] border border-charcoal-200 dark:border-white/10 text-sm text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-white/30 rounded-sm focus:outline-none focus:border-gold-500/60"
+                />
+                <textarea
+                  value={reviewBody}
+                  onChange={(e) => setReviewBody(e.target.value)}
+                  placeholder={t("reviewBodyPlaceholder")}
+                  rows={3}
+                  className="w-full px-3 py-2 mb-3 bg-white dark:bg-white/[0.04] border border-charcoal-200 dark:border-white/10 text-sm text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-white/30 rounded-sm focus:outline-none focus:border-gold-500/60 resize-none"
+                />
+                {reviewError && (
+                  <p className="mb-2 text-xs text-red-600 dark:text-red-400">{reviewError}</p>
+                )}
+                {reviewOk && (
+                  <p className="mb-2 text-xs text-emerald-600 dark:text-emerald-400">
+                    {t("reviewSubmitted")}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={reviewBusy || reviewRating < 1}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-walnut-600 hover:bg-walnut-700 dark:bg-gold-500 dark:hover:bg-gold-600 disabled:opacity-50 text-white dark:text-charcoal-900 text-xs font-medium tracking-wider uppercase rounded-sm transition-colors cursor-pointer"
+                >
+                  {reviewBusy ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
+                  {t("submitReview")}
+                </button>
+              </form>
+            )}
+            {user && myReview && (
+              <p className="mb-6 text-xs text-charcoal-500 dark:text-white/35">
+                {t("alreadyReviewed")}
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {(reviews?.reviews.length ?? 0) === 0 && (
+                <p className="text-sm text-charcoal-500 dark:text-white/35">
+                  {t("noReviews")} {t("beFirstReview")}
+                </p>
+              )}
+              {reviews?.reviews.map((r) => (
+                <div
+                  key={r.id}
+                  className="p-5 border border-charcoal-200/60 dark:border-white/[0.07]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {r.author.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.author.avatar}
+                          alt={r.author.name}
+                          className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <span className="w-9 h-9 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.6rem] font-mono text-gold-500 flex-shrink-0">
+                          {r.author.name.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-charcoal-800 dark:text-white/80">
+                          {r.author.name}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <StarRow value={r.rating} size={11} />
+                          <span className="text-[0.6rem] text-charcoal-400 dark:text-white/25">
+                            {new Date(r.createdAt).toLocaleDateString(locale)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {user?.id === r.userId && (
+                      <button
+                        onClick={() => deleteReview(r.id)}
+                        className="text-[0.6rem] text-charcoal-400 hover:text-red-500 dark:text-white/25 dark:hover:text-red-400 transition-colors cursor-pointer"
+                      >
+                        {t("delete")}
+                      </button>
+                    )}
+                  </div>
+                  {r.title && (
+                    <h3 className="mt-3 font-heading text-base font-semibold text-charcoal-900 dark:text-white">
+                      {r.title}
+                    </h3>
+                  )}
+                  {r.body && (
+                    <p className="mt-1.5 text-sm text-charcoal-700 dark:text-white/60 leading-relaxed">
+                      {r.body}
+                    </p>
+                  )}
+                  {r.reply && (
+                    <div className="mt-3 pl-4 border-l-2 border-gold-500/40">
+                      <p className="text-[0.6rem] font-mono tracking-widest uppercase text-gold-500/80">
+                        {t("seller")}
+                      </p>
+                      <p className="mt-1 text-sm text-charcoal-700 dark:text-white/60">{r.reply}</p>
+                    </div>
+                  )}
+                  {canReply && !r.reply && (
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        type="text"
+                        value={replyDrafts[r.id] ?? ""}
+                        onChange={(e) =>
+                          setReplyDrafts((d) => ({ ...d, [r.id]: e.target.value }))
+                        }
+                        placeholder={t("replyPlaceholder")}
+                        className="flex-1 px-3 py-2 bg-white dark:bg-white/[0.04] border border-charcoal-200 dark:border-white/10 text-sm text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-white/30 rounded-sm focus:outline-none focus:border-gold-500/60"
+                      />
+                      <button
+                        onClick={() => submitReply(r.id)}
+                        disabled={replyBusyId === r.id || !(replyDrafts[r.id] ?? "").trim()}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wider uppercase rounded-sm bg-walnut-600 hover:bg-walnut-700 dark:bg-gold-500 dark:hover:bg-gold-600 disabled:opacity-50 text-white dark:text-charcoal-900 transition-colors cursor-pointer"
+                      >
+                        {replyBusyId === r.id ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <Send size={12} />
+                        )}
+                        {t("reply")}
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

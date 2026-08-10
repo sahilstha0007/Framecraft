@@ -55,7 +55,7 @@ beforeAll(async () => {
     DROP TABLE IF EXISTS sessions, users, orders, products, custom_quotes,
       newsletter_subscribers, contacts, bookings, mat_options, glass_types, team_members,
       testimonials, services, gallery_items, frames, bids, posts, follows,
-      product_likes, comments CASCADE;
+      product_likes, comments, product_reviews CASCADE;
   `);
   await migrate();
 
@@ -1435,5 +1435,114 @@ describe("products search & filtering power-ups", () => {
     for (let i = 1; i < items.length; i++) {
       expect(items[i - 1].name.localeCompare(items[i].name)).toBeLessThanOrEqual(0);
     }
+  });
+});
+
+describe("reviews & ratings", () => {
+  test("a signed-in customer can review a product once", async () => {
+    const cookie = await registerCustomer("Reviewer A", "reviewer-a@test.com");
+    const res = await customerReq(cookie, "/api/products/1/reviews", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ rating: 5, title: "Beautiful", body: "Gorgeous work" }),
+    });
+    expect(res.status).toBe(201);
+
+    // One review per user per product.
+    const dup = await customerReq(cookie, "/api/products/1/reviews", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ rating: 3 }),
+    });
+    expect(dup.status).toBe(409);
+  });
+
+  test("reviews endpoint returns aggregate + review list", async () => {
+    const res = await get("/api/products/1/reviews");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { average: number; count: number; reviews: unknown[] };
+    expect(body.count).toBeGreaterThan(0);
+    expect(body.reviews.length).toBe(body.count);
+    expect(body.average).toBe(5);
+  });
+
+  test("product detail includes avg rating + review count", async () => {
+    const res = await get("/api/products/1");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { avgRating: number | null; reviewCount: number };
+    expect(body.reviewCount).toBeGreaterThan(0);
+    expect(body.avgRating).toBe(5);
+  });
+
+  test("the product's seller can reply to a review (others cannot)", async () => {
+    // A seller creates their own product and gets a review.
+    const sellerA = await registerRole("Vendor A", "vendor-a@test.com", "seller", "Vendor A Arts");
+    const created = await customerReq(sellerA.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Reviewable Artwork",
+        category: "Paintings",
+        price: 5000,
+        image: "https://images.unsplash.com/photo-1",
+        description: "A test piece",
+        stock: 3,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+    const pid = Number(((await created.json()) as { id: number }).id);
+
+    const buyer = await registerCustomer("Reviewer C", "reviewer-c@test.com");
+    const revRes = await customerReq(buyer, `/api/products/${pid}/reviews`, {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ rating: 4, body: "Lovely" }),
+    });
+    expect(revRes.status).toBe(201);
+    const reviewId = Number(((await revRes.json()) as { id: number }).id);
+
+    // A different seller (who does not own this product) is denied.
+    const otherSeller = await registerRole("Vendor B", "vendor-b@test.com", "seller", "Vendor B Arts");
+    const denied = await customerReq(otherSeller.cookie, `/api/reviews/${reviewId}/reply`, {
+      method: "PUT",
+      headers: jsonBody(),
+      body: JSON.stringify({ reply: "Hi" }),
+    });
+    expect(denied.status).toBe(403);
+
+    // The product's own seller can reply.
+    const ok = await customerReq(sellerA.cookie, `/api/reviews/${reviewId}/reply`, {
+      method: "PUT",
+      headers: jsonBody(),
+      body: JSON.stringify({ reply: "Thank you for your kind words!" }),
+    });
+    expect(ok.status).toBe(200);
+
+    const list = await get(`/api/products/${pid}/reviews`);
+    const body = (await list.json()) as { reviews: { reply: string | null }[] };
+    expect(body.reviews[0].reply).toContain("Thank you");
+  });
+
+  test("seller directory includes aggregate rating", async () => {
+    const res = await get("/api/sellers");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { rating: number | null; reviewCount: number }[];
+    expect(body.some((s) => s.rating != null && s.reviewCount > 0)).toBe(true);
+  });
+
+  test("author can delete their review", async () => {
+    const cookie = await registerCustomer("Reviewer D", "reviewer-d@test.com");
+    const rev = await customerReq(cookie, "/api/products/2/reviews", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ rating: 5 }),
+    });
+    const reviewId = Number(((await rev.json()) as { id: number }).id);
+    const del = await customerReq(cookie, `/api/reviews/${reviewId}`, { method: "DELETE" });
+    expect(del.status).toBe(200);
+    const after = await get("/api/products/2/reviews");
+    const body = (await after.json()) as { reviews: { id: number }[] };
+    expect(body.reviews.some((r) => r.id === reviewId)).toBe(false);
   });
 });

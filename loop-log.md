@@ -22,4 +22,15 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 - i18n: new `shopPage` + `framesPage` strings in en + ne.
 - Tests: +5 (`products search & filtering power-ups`).
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **64 pass / 0 fail** ✅
+**Commit:** `2581a33` + review fixes `4b61bb6`
+
+## Loop 2 — Reviews & ratings ✅
+**Plan:** one review (1–5★) per user per product, seller replies, aggregate ratings on product + seller surfaces.
+**Changes:**
+- Backend: `product_reviews` table (UNIQUE(product_id, user_id), reply + replied_at); `reviews.ts` route — `GET /api/products/:id/reviews` (avg + list), `POST` (guarded, 409 on dup), `PUT /api/reviews/:id/reply` (product seller or admin), `DELETE` (author or admin).
+- `products.ts`: avg_rating/review_count via LEFT JOIN on list + detail; `sellers.ts`: seller rating + review_count subqueries.
+- Frontend: product page — star badge under title, full Reviews section (interactive star picker, form, list, seller reply box, delete own); ProductCard star badge; seller profile rating in stats.
+- i18n: en + ne (`productPage`, `sellerProfile`).
+- Tests: +6 (`reviews & ratings`). Fixed test DB drop list (new table) + admin-vs-seller fixture nuance.
+**Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **70 pass / 0 fail** ✅
 **Commit:** pending

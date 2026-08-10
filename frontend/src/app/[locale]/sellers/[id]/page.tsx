@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Loader2, MapPin, Globe, Store, Users } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Globe, Store, Star, Users } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
@@ -23,6 +23,8 @@ interface SellerProfile {
   followerCount: number;
   postCount: number;
   followedByMe: boolean;
+  rating: number | null;
+  reviewCount: number;
 }
 
 interface PostCard {
@@ -146,6 +148,12 @@ export default function SellerProfilePage() {
                   </p>
                 )}
                 <div className="mt-5 flex flex-wrap items-center gap-5 font-mono text-[0.6rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/35">
+                  {seller.rating != null && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Star size={12} className="fill-gold-400 text-gold-400" />
+                      {t("rating")}: {seller.rating} ({seller.reviewCount})
+                    </span>
+                  )}
                   <span className="inline-flex items-center gap-1.5">
                     <Users size={12} className="text-gold-400/70" />
                     {seller.followerCount} {seller.followerCount === 1 ? t("follower") : t("followers")}

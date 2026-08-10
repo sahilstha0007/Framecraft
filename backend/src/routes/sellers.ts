@@ -14,6 +14,8 @@ function toSeller(r: Record<string, unknown>, me?: { id: number } | null) {
     productCount: Number(r.product_count ?? 0),
     followerCount: Number(r.follower_count ?? 0),
     followedByMe: me ? Boolean(r.followed_by_me) : false,
+    rating: r.rating == null ? null : Number(r.rating),
+    reviewCount: Number(r.review_count ?? 0),
     createdAt: r.created_at,
   };
 }
@@ -21,7 +23,11 @@ function toSeller(r: Record<string, unknown>, me?: { id: number } | null) {
 const SELLER_LIST_SQL = `
   SELECT u.id, u.name, u.avatar, u.shop_name, u.bio, u.location, u.website, u.created_at,
          (SELECT COUNT(*) FROM products p WHERE p.seller_id = u.id AND p.status != 'cancelled') AS product_count,
-         (SELECT COUNT(*) FROM follows f WHERE f.following_id = u.id) AS follower_count
+         (SELECT COUNT(*) FROM follows f WHERE f.following_id = u.id) AS follower_count,
+         (SELECT ROUND(AVG(rv.rating)::numeric, 1) FROM product_reviews rv
+            JOIN products pv ON pv.id = rv.product_id WHERE pv.seller_id = u.id) AS rating,
+         (SELECT COUNT(*) FROM product_reviews rv
+            JOIN products pv ON pv.id = rv.product_id WHERE pv.seller_id = u.id) AS review_count
   FROM users u`;
 
 export const sellersRoutes = new Elysia()

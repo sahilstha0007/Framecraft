@@ -280,6 +280,23 @@ export async function migrate() {
       created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
     );
     CREATE INDEX IF NOT EXISTS idx_comments_target ON comments(target_type, target_id);
+
+    -- Product reviews & ratings: one review per user per product, 1-5 stars,
+    -- with an optional seller reply. Sellers see the aggregate on their
+    -- profile (rating / review_count).
+    CREATE TABLE IF NOT EXISTS product_reviews (
+      id SERIAL PRIMARY KEY,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      title TEXT,
+      body TEXT,
+      reply TEXT,
+      replied_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+      UNIQUE (product_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id);
   `);
 }
 
