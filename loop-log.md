@@ -46,6 +46,25 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **72 pass / 0 fail** ✅
 **Commit:** `5f3e614` + review fixes `242a5d1`
 
+## Loop 8 — SEO & metadata power-up
+
+**What shipped**
+- Server wrappers for product / blog-post / seller pages: per-page
+  `generateMetadata` (dynamic titles, descriptions, canonical URLs, OG tags)
+  + JSON-LD (Product, BlogPosting, Person) rendered in initial HTML.
+- `lib/seo.ts`: failure-tolerant fetchers (2.5s timeout, graceful fallback to
+  generic metadata), JSON-LD builders, Organization schema.
+- Layout: canonical + en/ne hreflang alternates, OG image, Organization JSON-LD.
+- `sitemap.xml` (both locales + all products/posts/sellers, force-dynamic)
+  and `robots.txt`.
+- `API_INTERNAL_URL` compose env so server-side SEO fetches reach the backend
+  by service name (localhost:3001 only works from the browser).
+
+**Bug fixed (found by live smoke test)**
+- `/api/sellers/:id` had a duplicated `FROM users u` (SELLER_LIST_SQL ended
+  with FROM, detail query appended another) → 500 since Loop 2, hidden by
+  client-side catch. Fixed + regression test (+1).
+
 ## Loop 7 — Admin site-wide analytics
 
 **What shipped**

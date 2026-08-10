@@ -1971,3 +1971,42 @@ describe("admin analytics", () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe("seller profile detail", () => {
+  test("seller detail returns aggregates and a 404 for missing ids", async () => {
+    const vendor = await registerRole("Profile Vendor", "profile-vendor@test.com", "seller", "Profile Shop");
+    const created = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Profile Piece",
+        category: "Art",
+        price: 900,
+        image: "https://images.unsplash.com/photo-x",
+        description: "A profile test piece",
+        stock: 5,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+
+    const res = await get(`/api/sellers/${vendor.user.id}`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      id: number;
+      shopName: string | null;
+      productCount: number;
+      postCount: number;
+      rating: number | null;
+      reviewCount: number;
+    };
+    expect(body.id).toBe(vendor.user.id);
+    expect(body.shopName).toBe("Profile Shop");
+    expect(body.productCount).toBeGreaterThanOrEqual(1);
+    expect(typeof body.postCount).toBe("number");
+    expect(typeof body.reviewCount).toBe("number");
+
+    const missing = await get("/api/sellers/999999");
+    expect(missing.status).toBe(404);
+  });
+});

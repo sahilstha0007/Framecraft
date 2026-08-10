@@ -20,6 +20,8 @@ function toSeller(r: Record<string, unknown>, me?: { id: number } | null) {
   };
 }
 
+// SELECT list only — callers append their own FROM/WHERE so the list and the
+// per-seller detail query share the same aggregates.
 const SELLER_LIST_SQL = `
   SELECT u.id, u.name, u.avatar, u.shop_name, u.bio, u.location, u.website, u.created_at,
          (SELECT COUNT(*) FROM products p WHERE p.seller_id = u.id AND p.status != 'cancelled') AS product_count,
@@ -27,14 +29,13 @@ const SELLER_LIST_SQL = `
          (SELECT ROUND(AVG(rv.rating)::numeric, 1) FROM product_reviews rv
             JOIN products pv ON pv.id = rv.product_id WHERE pv.seller_id = u.id) AS rating,
          (SELECT COUNT(*) FROM product_reviews rv
-            JOIN products pv ON pv.id = rv.product_id WHERE pv.seller_id = u.id) AS review_count
-  FROM users u`;
+            JOIN products pv ON pv.id = rv.product_id WHERE pv.seller_id = u.id) AS review_count`;
 
 export const sellersRoutes = new Elysia()
   /* Public: marketplace directory of sellers (with active products). */
   .get("/api/sellers", async ({ request }) => {
     const me = await getUserBySession(request);
-    const rows = await all(SELLER_LIST_SQL);
+    const rows = await all(`${SELLER_LIST_SQL} FROM users u`);
     const filtered = rows.filter(
       (r) => Number((r as Record<string, unknown>).product_count) > 0 || me?.id === (r as Record<string, unknown>).id
     );

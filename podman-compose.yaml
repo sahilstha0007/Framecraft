@@ -72,6 +72,9 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://framecraft.com.np}
+      # Server-side fetches (SEO metadata / sitemap / JSON-LD) reach the API by
+      # its compose service name — localhost:3001 only works from the browser.
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://backend:3001}
     healthcheck:
       test:
         - CMD

@@ -23,6 +23,8 @@ import LenisProvider from "@/components/LenisProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import { CartProvider } from "@/lib/cart";
 import { routing } from "@/i18n/routing";
+import { SITE_URL, organizationJsonLd } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -86,11 +88,27 @@ export async function generateMetadata({
       "FrameCraft",
       "framing studio",
     ],
+    alternates: {
+      canonical: `${SITE_URL}/${locale}`,
+      languages: {
+        en: `${SITE_URL}/en`,
+        ne: `${SITE_URL}/ne`,
+      },
+    },
     openGraph: {
       title: t("title"),
       description: t("description"),
       type: "website",
       locale: locale === "ne" ? "ne_NP" : "en_US",
+      siteName: "FrameCraft",
+      images: [
+        {
+          url: "https://images.unsplash.com/photo-1582053628662-c65b0e0544e9?w=1200&q=80",
+          width: 1200,
+          height: 800,
+          alt: "FrameCraft — custom framing studio, Kathmandu",
+        },
+      ],
     },
   };
 }
@@ -129,6 +147,7 @@ export default async function LocaleLayout({
         />
       </head>
       <body className="antialiased">
+        <JsonLd data={organizationJsonLd} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
             <CartProvider>
