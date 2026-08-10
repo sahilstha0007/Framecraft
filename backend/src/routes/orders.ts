@@ -47,8 +47,6 @@ interface OrderRow {
   created_at: string;
 }
 
-const EMPTY_EVENTS: OrderEvent[] = [];
-
 function toOrder(row: unknown) {
   const r = row as Record<string, unknown>;
   let items: unknown = [];
@@ -72,7 +70,7 @@ function toOrder(row: unknown) {
     status: r.status,
     notes: r.notes ?? null,
     createdAt: r.created_at,
-    events: EMPTY_EVENTS,
+    events: [] as OrderEvent[],
   };
 }
 
@@ -97,7 +95,7 @@ async function withEvents(orders: ReturnType<typeof toOrder>[]): Promise<ReturnT
     });
     byOrder.set(Number(rec.order_id), list);
   }
-  for (const o of orders) o.events = byOrder.get(Number(o.id)) ?? EMPTY_EVENTS;
+  for (const o of orders) o.events = byOrder.get(Number(o.id)) ?? [];
   return orders;
 }
 
@@ -224,7 +222,8 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
         return withEvents(rows.map(toOrder));
       })
   )
-  /* Public: the status timeline for any order (statuses only, no PII). */
+  /* Public: the status timeline for any order. Statuses only — internal admin
+     notes are deliberately stripped so an enumerable order id leaks nothing. */
   .get("/orders/:id/events", async ({ params, set }) => {
     const order = await all("SELECT id FROM orders WHERE id = $1", [params.id]);
     if (!order[0]) {
@@ -232,7 +231,7 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
       return { error: "Order not found" };
     }
     const rows = await all(
-      "SELECT status, note, created_at FROM order_events WHERE order_id = $1 ORDER BY id",
+      "SELECT status, created_at FROM order_events WHERE order_id = $1 ORDER BY id",
       [params.id]
     );
     return { orderId: params.id, events: rows };
@@ -268,14 +267,17 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
           }
           if (updates.length === 0) return { success: true, id: params.id };
           values.push(params.id);
-          await all(`UPDATE orders SET ${updates.join(", ")} WHERE id = $${values.length}`, values);
-          // Record the status transition on the timeline.
-          if (body.status) {
-            await all(
-              "INSERT INTO order_events (order_id, status, note) VALUES ($1, $2, $3)",
-              [params.id, body.status, body.notes?.trim() ? `Status note: ${body.notes.trim()}` : null]
-            );
-          }
+          // Update + timeline event are atomic so the status and its history
+          // can never drift apart.
+          await db.begin(async (tx) => {
+            await tx.unsafe(`UPDATE orders SET ${updates.join(", ")} WHERE id = $${values.length}`, values);
+            if (body.status) {
+              await tx.unsafe(
+                "INSERT INTO order_events (order_id, status, note) VALUES ($1, $2, $3)",
+                [params.id, body.status, body.notes?.trim() ? `Status note: ${body.notes.trim()}` : null]
+              );
+            }
+          });
           return { success: true, id: params.id };
         },
         {

@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { all } from "../db";
+import { all, db } from "../db";
 import { requireSeller } from "./auth";
 import { REQUEST_STATUSES } from "./helpers";
 
@@ -212,14 +212,17 @@ export const sellerRoutes = new Elysia()
           }
           if (updates.length === 0) return { success: true, id: params.id };
           values.push(params.id);
-          await all(`UPDATE orders SET ${updates.join(", ")} WHERE id = $${values.length}`, values);
-          // Record the status transition on the shared timeline.
-          if (body.status) {
-            await all(
-              "INSERT INTO order_events (order_id, status, note) VALUES ($1, $2, $3)",
-              [params.id, body.status, body.notes?.trim() ? `Status note: ${body.notes.trim()}` : null]
-            );
-          }
+          // Update + timeline event are atomic so the status and its history
+          // can never drift apart.
+          await db.begin(async (tx) => {
+            await tx.unsafe(`UPDATE orders SET ${updates.join(", ")} WHERE id = $${values.length}`, values);
+            if (body.status) {
+              await tx.unsafe(
+                "INSERT INTO order_events (order_id, status, note) VALUES ($1, $2, $3)",
+                [params.id, body.status, body.notes?.trim() ? `Status note: ${body.notes.trim()}` : null]
+              );
+            }
+          });
           return { success: true, id: params.id };
         },
         {

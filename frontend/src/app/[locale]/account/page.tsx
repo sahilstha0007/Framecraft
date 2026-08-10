@@ -191,7 +191,7 @@ export default function AccountPage() {
                 <StatusBadge status={ev.status} label={label(ev.status)} />
                 {ev.createdAt && (
                   <span className="text-[0.6rem] text-charcoal-400 dark:text-white/25">
-                    {new Date(ev.createdAt).toLocaleString(locale)}
+                    {new Date(ev.createdAt.replace(" ", "T")).toLocaleString(locale)}
                   </span>
                 )}
               </div>
