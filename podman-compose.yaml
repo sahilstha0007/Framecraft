@@ -1,0 +1,87 @@
+# FrameCraft — full stack via Podman
+#
+#   podman-compose -f podman-compose.yaml up --build -d
+#   podman-compose -f podman-compose.yaml ps
+#   podman-compose -f podman-compose.yaml logs -f backend
+#   podman-compose -f podman-compose.yaml exec backend bun run seed
+#   podman-compose -f podman-compose.yaml down
+#
+# Also works with `docker compose -f podman-compose.yaml` on machines with Docker.
+
+name: framecraft
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: framecraft-postgres
+    environment:
+      POSTGRES_USER: framecraft
+      POSTGRES_PASSWORD: framecraft
+      POSTGRES_DB: framecraft
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U framecraft -d framecraft"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build: ./backend
+    container_name: framecraft-backend
+    environment:
+      PORT: 3001
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      DATABASE_URL: postgres://framecraft:framecraft@postgres:5432/framecraft
+      ADMIN_KEY: ${ADMIN_KEY:-dev-admin-key}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3001}
+      KHALTI_SECRET_KEY: ${KHALTI_SECRET_KEY:-}
+      KHALTI_API: ${KHALTI_API:-https://dev.khalti.com/api/v2}
+      ESEWA_SECRET_KEY: ${ESEWA_SECRET_KEY:-8gBm/:&EnhH.1/q}
+      ESEWA_PRODUCT_CODE: ${ESEWA_PRODUCT_CODE:-EPAYTEST}
+      ESEWA_API: ${ESEWA_API:-https://rc-epay.esewa.com.np}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - fetch('http://127.0.0.1:3001/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://framecraft.com.np}
+    container_name: framecraft-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://framecraft.com.np}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+
+volumes:
+  pgdata:

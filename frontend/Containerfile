@@ -1,0 +1,52 @@
+# FrameCraft frontend — Next.js 16 (App Router) with standalone output.
+# Deps are installed with Bun (project toolchain + bun.lock); the production
+# build runs on real Node.js — Next's officially supported runtime — because
+# `bun run build` for Next crashes in this image (Bun 1.3.14 SIGILL).
+# syntax=docker/dockerfile:1
+
+FROM docker.io/node:22-alpine AS base
+WORKDIR /app
+
+# ── Dependencies (bun install, musl build) ─────────────────────────────────
+FROM base AS deps
+RUN apk add --no-cache curl unzip bash \
+  && curl -fsSL https://bun.sh/install | bash \
+  && mv /root/.bun/bin/bun /usr/local/bin/bun
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+# ── Builder ────────────────────────────────────────────────────────────────
+FROM base AS builder
+COPY --from=deps /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* vars are inlined at build time — pass via build args.
+ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_SITE_URL=https://framecraft.com.np
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+RUN node node_modules/next/dist/bin/next build
+
+# ── Runner (standalone server) ─────────────────────────────────────────────
+FROM docker.io/node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=10 \
+  CMD node -e "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+
+CMD ["node", "server.js"]

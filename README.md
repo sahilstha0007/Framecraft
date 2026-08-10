@@ -6,8 +6,11 @@ Premium Custom Framing Studio — and a marketplace & social platform for art. A
 
 ```
 framecraft/
-├── frontend/   Next.js 16 app — App Router, React 19, Tailwind v4, Three.js
-└── backend/    Elysia REST API on Bun — bun:sqlite persistence
+├── frontend/            Next.js 16 app — App Router, React 19, Tailwind v4, Three.js
+├── backend/             Elysia REST API on Bun — PostgreSQL (Bun.sql)
+├── podman-compose.yaml  Full stack (postgres + backend + frontend) via Podman
+├── backend/Containerfile
+└── frontend/Containerfile
 ```
 
 ## What it is
@@ -67,3 +70,31 @@ Both **English** (default) and **Nepali** are supported, with Bikram Sambat date
 ## Requirements
 
 - [Bun](https://bun.com) ≥ 1.3 (Node is used under the hood by Next.js)
+- [Podman](https://podman.io) ≥ 4 + `podman-compose` (or Docker) for the containerized stack
+
+## Full stack with Podman
+
+Everything — **PostgreSQL, backend, frontend** — runs from one compose file:
+
+```bash
+cp .env.example .env            # optional — sensible defaults are baked in
+podman-compose -f podman-compose.yaml up --build -d
+podman-compose -f podman-compose.yaml ps
+```
+
+| Service   | URL                 | Notes                                        |
+| --------- | ------------------- | -------------------------------------------- |
+| frontend  | http://localhost:3000 | Next.js standalone server (non-root)       |
+| backend   | http://localhost:3001 | Elysia API, auto-migrates + seeds on boot  |
+| postgres  | localhost:5432      | `framecraft`/`framecraft`, named volume `pgdata` |
+
+Healthchecks gate startup order (postgres → backend → frontend). The API waits for PostgreSQL before migrating, so a cold start is safe. Useful commands:
+
+```bash
+podman-compose -f podman-compose.yaml logs -f backend   # watch the API boot
+podman-compose -f podman-compose.yaml exec backend bun run seed   # reseed demo content
+podman-compose -f podman-compose.yaml down              # stop (data persists in pgdata)
+podman-compose -f podman-compose.yaml down -v           # stop + wipe the database
+```
+
+For local development without containers, follow the per-workspace quick start above (backend needs a running PostgreSQL on `localhost:5432`).
