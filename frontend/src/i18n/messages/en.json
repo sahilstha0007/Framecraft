@@ -604,7 +604,10 @@
     "trackOrder": "Track an order",
     "trackPlaceholder": "Order number",
     "track": "Track",
-    "notFound": "Order not found."
+    "notFound": "Order not found.",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all read",
+    "noNotifications": "You're all caught up."
   },
   "whatsapp": {
     "label": "Chat with us on WhatsApp",

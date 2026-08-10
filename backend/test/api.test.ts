@@ -1598,3 +1598,97 @@ describe("order tracking timeline", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("notification center", () => {
+  test("following a seller notifies them", async () => {
+    const seller = await registerRole("Notif Seller", "notif-seller@test.com", "seller", "Notif Arts");
+    const fan = await registerCustomer("Notif Fan", "notif-fan@test.com");
+    const follow = await customerReq(fan, `/api/sellers/${seller.user.id}/follow`, { method: "POST" });
+    expect(follow.status).toBe(200);
+
+    const res = await customerReq(seller.cookie, "/api/me/notifications");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { notifications: { type: string }[]; unreadCount: number };
+    expect(body.notifications.some((x) => x.type === "new_follower")).toBe(true);
+    expect(body.unreadCount).toBeGreaterThan(0);
+  });
+
+  test("a new bid notifies the outbid leader", async () => {
+    const a = await registerCustomer("Outbid A", "outbid-a@test.com");
+    const b = await registerCustomer("Outbid B", "outbid-b@test.com");
+    const list = await get("/api/products?auction=true&status=active");
+    const products = (await list.json()) as {
+      id: number;
+      currentBid: number | null;
+      startingBid: number | null;
+      minIncrement: number;
+    }[];
+    expect(products.length).toBeGreaterThan(0);
+    const auction = products[0];
+    const floor = (auction.currentBid ?? auction.startingBid ?? 0) + auction.minIncrement;
+
+    const bid1 = await customerReq(a, `/api/products/${auction.id}/bid`, {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ amount: floor }),
+    });
+    expect(bid1.status).toBe(201);
+    const bid2 = await customerReq(b, `/api/products/${auction.id}/bid`, {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({ amount: floor + auction.minIncrement }),
+    });
+    expect(bid2.status).toBe(201);
+
+    const res = await customerReq(a, "/api/me/notifications");
+    const body = (await res.json()) as { notifications: { type: string }[] };
+    expect(body.notifications.some((x) => x.type === "outbid")).toBe(true);
+  });
+
+  test("order status changes notify the customer", async () => {
+    // Own product so stock can't run out mid-suite.
+    const vendor = await registerRole("Order Notif Vendor", "order-notif-vendor@test.com", "seller", "Notif Goods");
+    const created = await customerReq(vendor.cookie, "/api/seller/products", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        name: "Notif Widget",
+        category: "Goods",
+        price: 999,
+        image: "https://images.unsplash.com/photo-x",
+        description: "A widget",
+        stock: 50,
+        featured: false,
+      }),
+    });
+    expect(created.status).toBe(201);
+    const pid = Number(((await created.json()) as { id: number }).id);
+
+    const { cookie: c } = await registerRole("Order Notif", "order-notif@test.com", "customer");
+    const order = await customerReq(c, "/api/orders", {
+      method: "POST",
+      headers: jsonBody(),
+      body: JSON.stringify({
+        items: [{ productId: pid, quantity: 1 }],
+        address: "Patan, Lalitpur",
+        paymentMethod: "Cash on Delivery",
+      }),
+    });
+    expect(order.status).toBe(201);
+    const orderId = Number(((await order.json()) as { id: number }).id);
+
+    const upd = await sellerPatch(`/api/orders/${orderId}`, { status: "confirmed" });
+    expect(upd.status).toBe(200);
+
+    const res = await customerReq(c, "/api/me/notifications");
+    const body = (await res.json()) as { notifications: { type: string }[] };
+    expect(body.notifications.some((x) => x.type === "order_status")).toBe(true);
+
+    // Mark all read clears the unread badge.
+    await customerReq(c, "/api/me/notifications/read-all", { method: "PUT" });
+    const after = (await (await customerReq(c, "/api/me/notifications")).json()) as {
+      unreadCount: number;
+    };
+    expect(after.unreadCount).toBe(0);
+  });
+});

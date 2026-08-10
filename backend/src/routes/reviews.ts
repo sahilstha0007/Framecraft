@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { all } from "../db";
 import { getUserBySession, requireAuth } from "./auth";
+import { notify } from "./notifications";
 
 /**
  * Reviews & ratings: one review (1-5 stars) per user per product, with an
@@ -55,13 +56,22 @@ export const reviewsRoutes = new Elysia()
       .post(
         "/api/products/:id/reviews",
         async ({ params, body, set, user }: any) => {
-          const product = await all<{ id: number; seller_id: number }>(
-            "SELECT id, seller_id FROM products WHERE id = $1",
+          const product = await all<{ id: number; name: string; seller_id: number | null }>(
+            "SELECT id, name, seller_id FROM products WHERE id = $1",
             [params.id]
           );
           if (!product[0]) {
             set.status = 404;
             return { error: "Product not found" };
+          }
+          if (product[0].seller_id && product[0].seller_id !== user.id) {
+            await notify(
+              product[0].seller_id,
+              "review_received",
+              `“${product[0].name}” got a ${body.rating}-star review`,
+              body.body ? body.body.slice(0, 140) : undefined,
+              `/products/${params.id}`
+            );
           }
           let inserted: { id: number }[];
           try {

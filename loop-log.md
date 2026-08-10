@@ -44,4 +44,15 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 - Tests: +2 (`order tracking timeline`); added `order_events` to the test drop list.
 - Fixed backend typecheck issues from `events: []` inference + `unknown` ids.
 **Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **72 pass / 0 fail** ✅
+**Commit:** `5f3e614` + review fixes `242a5d1`
+
+## Loop 4 — Notifications center (in-app + WhatsApp) ✅
+**Plan:** in-app notification center fed by marketplace events; best-effort WhatsApp nudges.
+**Changes:**
+- Backend: `notifications` table; `notifications.ts` (shared `notify()` + `GET /api/me/notifications`, `PATCH /:id`, `PUT /read-all`); `lib/whatsapp.ts` (graceful Cloud-API helper, no-ops when unconfigured).
+- Triggers: outbid (bids), auction won (auto-close + seller early-end), new order → sellers, order status → customer (+ WhatsApp to order phone), new follower, new comment → content owner, review received → seller.
+- Frontend: `NotificationBell` in Navbar (desktop + mobile) — unread badge, 30s polling, dropdown list with type icons, mark-all-read, click-to-mark-read + navigate.
+- i18n: en + ne (`account`: notifications/markAllRead/noNotifications).
+- Tests: +3 (`notification center`); made the order-notify test self-sufficient (own product) to avoid stock depletion.
+**Validation:** backend typecheck ✅ · frontend typecheck ✅ · `bun test` **75 pass / 0 fail** ✅
 **Commit:** pending

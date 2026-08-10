@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import ThemeToggle from "./ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
+import NotificationBell from "./NotificationBell";
 import LogoParticles from "./LogoParticles";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
@@ -93,6 +94,7 @@ export default function Navbar() {
               <div className="ml-1.5 xl:ml-2 flex items-center gap-1 xl:gap-1.5 shrink-0">
                 <LanguageSwitcher />
                 <ThemeToggle />
+                <NotificationBell />
                 {cartButton}
                 {!loading && !user && (
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -156,6 +158,7 @@ export default function Navbar() {
             <div className="flex items-center gap-1.5 xl:hidden shrink-0">
               <LanguageSwitcher />
               <ThemeToggle />
+              <NotificationBell />
               {cartButton}
               <button
                 onClick={() => setIsOpen(!isOpen)}

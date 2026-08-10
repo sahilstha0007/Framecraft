@@ -2,6 +2,8 @@ import { Elysia, t } from "elysia";
 import { all, db } from "../db";
 import { requireSeller } from "./auth";
 import { REQUEST_STATUSES } from "./helpers";
+import { notify } from "./notifications";
+import { sendWhatsApp } from "../lib/whatsapp";
 
 /**
  * The marketplace seller's own shop: their products (fixed-price and
@@ -129,8 +131,8 @@ export const sellerRoutes = new Elysia()
       .post(
         "/api/seller/products/:id/end",
         async ({ params, set, user }: any) => {
-          const rows = await all<{ id: number; auction: number; status: string }>(
-            "SELECT id, auction, status FROM products WHERE id = $1 AND seller_id = $2",
+          const rows = await all<{ id: number; name: string; auction: number; status: string; winner_id: number | null }>(
+            "SELECT id, name, auction, status, winner_id FROM products WHERE id = $1 AND seller_id = $2",
             [params.id, user.id]
           );
           if (!rows[0]) {
@@ -146,6 +148,15 @@ export const sellerRoutes = new Elysia()
             return { error: "This auction is already closed" };
           }
           await all("UPDATE products SET status = 'ended' WHERE id = $1", [params.id]);
+          if (rows[0].winner_id) {
+            await notify(
+              rows[0].winner_id,
+              "auction_won",
+              `You won “${rows[0].name}”`,
+              "The seller ended the auction early — you're the winning bidder!",
+              `/products/${params.id}`
+            );
+          }
           return { success: true, id: params.id };
         },
         { params: t.Object({ id: t.Numeric() }) }
@@ -177,8 +188,8 @@ export const sellerRoutes = new Elysia()
       .patch(
         "/api/seller/orders/:id",
         async ({ params, body, set, user }: any) => {
-          const rows = await all<{ id: number; items: string }>(
-            "SELECT id, items FROM orders WHERE id = $1",
+          const rows = await all<{ id: number; items: string; user_id: number | null; phone: string | null }>(
+            "SELECT id, items, user_id, phone FROM orders WHERE id = $1",
             [params.id]
           );
           if (!rows[0]) {
@@ -223,6 +234,22 @@ export const sellerRoutes = new Elysia()
               );
             }
           });
+          // Notify the customer (in-app + best-effort WhatsApp).
+          if (body.status && rows[0].user_id) {
+            await notify(
+              rows[0].user_id,
+              "order_status",
+              `Order #${params.id} is now “${body.status}”`,
+              "Your order status just changed — follow it on the timeline.",
+              "/account?tab=orders"
+            );
+          }
+          if (body.status && rows[0].phone) {
+            await sendWhatsApp(
+              rows[0].phone,
+              `FrameCraft: your order #${params.id} is now ${body.status}. Track it at framecraft.com.np/account`
+            );
+          }
           return { success: true, id: params.id };
         },
         {

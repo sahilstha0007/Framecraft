@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { all } from "../db";
 import { getUserBySession, requireAuth } from "./auth";
+import { notify } from "./notifications";
 
 /**
  * The social layer of the marketplace: users follow sellers, like products,
@@ -86,6 +87,13 @@ export const socialRoutes = new Elysia()
             "INSERT INTO follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
             [user.id, params.id]
           );
+          await notify(
+            Number(params.id),
+            "new_follower",
+            `${user.name} started following you`,
+            "They'll see your new pieces as soon as you list them.",
+            `/sellers/${user.id}`
+          );
           return { success: true, following: true };
         },
         { params: t.Object({ id: t.Numeric() }) }
@@ -160,25 +168,45 @@ export const socialRoutes = new Elysia()
       .post(
         "/api/comments",
         async ({ body, set, user }: any) => {
-          // Target must exist.
+          // Target must exist; the owner is the one we notify.
+          let ownerId: number | null = null;
           if (body.targetType === "product") {
-            const p = await all("SELECT id FROM products WHERE id = $1", [body.targetId]);
+            const p = await all<{ id: number; seller_id: number | null }>(
+              "SELECT id, seller_id FROM products WHERE id = $1",
+              [body.targetId]
+            );
             if (!p[0]) {
               set.status = 404;
               return { error: "Product not found" };
             }
+            ownerId = p[0].seller_id;
           } else {
-            const p = await all("SELECT id FROM posts WHERE id = $1", [body.targetId]);
+            const p = await all<{ id: number; seller_id: number }>(
+              "SELECT id, seller_id FROM posts WHERE id = $1",
+              [body.targetId]
+            );
             if (!p[0]) {
               set.status = 404;
               return { error: "Post not found" };
             }
+            ownerId = p[0].seller_id;
           }
           const inserted = await all<{ id: number }>(
             `INSERT INTO comments (target_type, target_id, user_id, content)
              VALUES ($1, $2, $3, $4) RETURNING id`,
             [body.targetType, body.targetId, user.id, body.content.trim()]
           );
+          if (ownerId && ownerId !== user.id) {
+            await notify(
+              ownerId,
+              "new_comment",
+              `${user.name} commented on your ${body.targetType}`,
+              body.content.trim().slice(0, 140),
+              body.targetType === "product"
+                ? `/products/${body.targetId}`
+                : `/blog/${body.targetId}`
+            );
+          }
           set.status = 201;
           const rows = await all(
             `SELECT c.*, u.name AS author_name, u.avatar AS author_avatar

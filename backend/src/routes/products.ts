@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { all } from "../db";
+import { notify } from "./notifications";
 
 function toProduct(row: unknown, extra?: Record<string, unknown>) {
   const r = row as Record<string, unknown>;
@@ -31,11 +32,28 @@ function toProduct(row: unknown, extra?: Record<string, unknown>) {
  * dead auction resolves itself without needing a cron job.
  */
 export async function closeExpiredAuctions(): Promise<void> {
-  await all(
-    `UPDATE products SET status = 'ended'
+  // Find the auctions that just crossed their deadline, close them, and notify
+  // the winning bidders. Read-then-update is fine here: `ends_at` is a hard
+  // deadline, not a race.
+  const expired = await all<{ id: number; name: string; winner_id: number | null }>(
+    `SELECT id, name, winner_id FROM products
      WHERE auction = 1 AND status = 'active'
        AND ends_at IS NOT NULL AND ends_at < to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS')`
   );
+  if (expired.length === 0) return;
+  const placeholders = expired.map((_, i) => `$${i + 1}`).join(", ");
+  await all(`UPDATE products SET status = 'ended' WHERE id IN (${placeholders})`, expired.map((e) => e.id));
+  for (const e of expired) {
+    if (e.winner_id) {
+      await notify(
+        e.winner_id,
+        "auction_won",
+        `You won “${e.name}”`,
+        "Congratulations! The seller will contact you to arrange delivery.",
+        `/products/${e.id}`
+      );
+    }
+  }
 }
 
 const PRODUCT_SELECT = `

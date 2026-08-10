@@ -2,6 +2,8 @@ import { Elysia, t } from "elysia";
 import { all, db } from "../db";
 import { REQUEST_STATUSES } from "./helpers";
 import { requireAuth, requireAdmin } from "./auth";
+import { notify } from "./notifications";
+import { sendWhatsApp } from "../lib/whatsapp";
 
 /**
  * Orders. Checkout requires a signed-in customer; prices are always computed
@@ -107,15 +109,19 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
         "/orders",
         async ({ body, set, user }: any) => {
           let orderId: number;
+          let sellerIds: number[] = [];
           try {
             orderId = await db.begin(async (tx) => {
               const ids = body.items.map((i: { productId: number }) => i.productId);
               const placeholders = ids.map((_: unknown, i: number) => `$${i + 1}`).join(", ");
               const rows = (await tx.unsafe(
-                `SELECT id, name, price, stock FROM products WHERE id IN (${placeholders})`,
+                `SELECT id, name, price, stock, seller_id FROM products WHERE id IN (${placeholders})`,
                 ids
-              )) as { id: number; name: string; price: number; stock: number }[];
+              )) as { id: number; name: string; price: number; stock: number; seller_id: number | null }[];
               const byId = new Map(rows.map((r) => [r.id, r]));
+              sellerIds = Array.from(
+                new Set(rows.map((r) => r.seller_id).filter((s): s is number => s != null && s !== user.id))
+              );
 
               // Build server-priced line items; reject anything unknown or short.
               const items = body.items.map((item: { productId: number; quantity: number }) => {
@@ -194,6 +200,16 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
             }
             throw err;
           }
+          // Tell every seller with items in this order.
+          for (const sid of sellerIds) {
+            await notify(
+              sid,
+              "new_order",
+              "You have a new order",
+              `Order #${orderId} includes your work — check your dashboard.`,
+              "/dashboard?tab=orders"
+            );
+          }
           set.status = 201;
           const orderRows = await all("SELECT * FROM orders WHERE id = $1", [orderId]);
           return toOrder(orderRows[0]);
@@ -246,7 +262,10 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
       .patch(
         "/orders/:id",
         async ({ params, body, set }) => {
-          const existing = await all("SELECT id FROM orders WHERE id = $1", [params.id]);
+          const existing = await all<{ user_id: number | null; phone: string | null }>(
+            "SELECT user_id, phone FROM orders WHERE id = $1",
+            [params.id]
+          );
           if (!existing[0]) {
             set.status = 404;
             return { error: "Order not found" };
@@ -278,6 +297,22 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
               );
             }
           });
+          // Notify the customer (in-app + best-effort WhatsApp).
+          if (body.status && existing[0]?.user_id) {
+            await notify(
+              existing[0].user_id,
+              "order_status",
+              `Order #${params.id} is now “${body.status}”`,
+              "Your order status just changed — follow it on the timeline.",
+              "/account?tab=orders"
+            );
+          }
+          if (body.status && existing[0]?.phone) {
+            await sendWhatsApp(
+              existing[0].phone,
+              `FrameCraft: your order #${params.id} is now ${body.status}. Track it at framecraft.com.np/account`
+            );
+          }
           return { success: true, id: params.id };
         },
         {

@@ -307,6 +307,21 @@ export async function migrate() {
       created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
       UNIQUE (product_id, user_id)
     );
+
+    -- In-app notification center. Triggered by marketplace events:
+    -- outbid, auction_won, order_status, new_order, new_follower,
+    -- new_comment, review_received.
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      link TEXT,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, id);
   `);
 }
 

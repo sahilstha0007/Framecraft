@@ -602,7 +602,10 @@
     "trackOrder": "अर्डर ट्र्याक गर्नुहोस्",
     "trackPlaceholder": "अर्डर नम्बर",
     "track": "ट्र्याक",
-    "notFound": "अर्डर भेटिएन।"
+    "notFound": "अर्डर भेटिएन।",
+    "notifications": "सूचनाहरू",
+    "markAllRead": "सबै पढेको चिन्ह लगाउनुहोस्",
+    "noNotifications": "तपाईंको सबै सूचना हेरिसकियो।"
   },
   "whatsapp": {
     "label": "ह्वाट्सएपमा सम्पर्क गर्नुहोस्",

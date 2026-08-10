@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { all, db } from "../db";
 import { requireAuth } from "./auth";
+import { notify } from "./notifications";
 
 class BidError extends Error {
   status: number;
@@ -39,6 +40,8 @@ export const bidsRoutes = new Elysia()
       .post(
         "/api/products/:id/bid",
         async ({ params, body, set, user }: any) => {
+          let outbidUser: number | null = null;
+          let productName = "";
           try {
             await db.begin(async (tx) => {
               const products = (await tx.unsafe(
@@ -59,6 +62,8 @@ export const bidsRoutes = new Elysia()
                 seller_id: number | null;
               }[];
               const product = products[0];
+              outbidUser = product.winner_id ?? null;
+              productName = product.name;
               if (!product) throw new BidError("Product not found", 404);
               if (!product.auction) throw new BidError("This item is not an auction");
               if (product.status !== "active")
@@ -97,6 +102,16 @@ export const bidsRoutes = new Elysia()
                 [params.id, user.id, body.amount]
               );
             });
+            // The previous leader just got outbid (unless they bid themselves).
+            if (outbidUser && outbidUser !== user.id) {
+              await notify(
+                outbidUser,
+                "outbid",
+                `You've been outbid on “${productName}”`,
+                `A new bid of NPR ${body.amount} overtook yours.`,
+                `/products/${params.id}`
+              );
+            }
           } catch (err) {
             if (err instanceof BidError) {
               set.status = err.status;

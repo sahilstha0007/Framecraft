@@ -21,6 +21,7 @@ import { bidsRoutes } from "./routes/bids";
 import { postsRoutes } from "./routes/posts";
 import { socialRoutes } from "./routes/social";
 import { reviewsRoutes } from "./routes/reviews";
+import { notificationsRoutes } from "./routes/notifications";
 import { sellersRoutes } from "./routes/sellers";
 import { sellerRoutes } from "./routes/seller";
 import { paymentsRoutes } from "./routes/payments";
@@ -118,6 +119,7 @@ export const app = new Elysia()
   .use(postsRoutes)
   .use(socialRoutes)
   .use(reviewsRoutes)
+  .use(notificationsRoutes)
   .use(sellersRoutes)
   .use(sellerRoutes)
   .use(paymentsRoutes)
