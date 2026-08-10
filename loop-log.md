@@ -55,6 +55,16 @@ Autonomous 10-loop plan → implement → review session. Spec: `framecraft-evol
 - NotificationBell renders a Timer icon for `ending_soon`.
 - +1 test (two sweeps → exactly one alert).
 
+**Review fixes**
+- Window computed in UTC (`now() AT TIME ZONE 'UTC'`) to match ends_at —
+  independent of the DB session timezone (close sweep too).
+- Race-proof dedup: partial unique index on (user, type, link) for ending_soon
+  + `ON CONFLICT DO NOTHING`.
+
+## 10 loops complete — final state
+- 89 tests green, backend + frontend typechecks and production build clean.
+- Full stack rebuilt and verified live under podman-compose.
+
 ## Loop 9 — Marketplace pulse (live activity + fresh arrivals)
 
 **What shipped**

@@ -322,6 +322,10 @@ export async function migrate() {
       created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
     );
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, id);
+    -- Guarantees a bidder gets exactly one ending-soon alert per auction, even
+    -- if two lazy sweeps race (INSERT ... ON CONFLICT DO NOTHING).
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_notifications_ending_soon
+      ON notifications(user_id, type, link) WHERE type = 'ending_soon';
 
     -- Product view tracking: one row per product-page visit (the signed-in
     -- user when available; guests carry a localStorage visitor id). Drives the

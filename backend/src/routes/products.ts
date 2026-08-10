@@ -33,12 +33,14 @@ function toProduct(row: unknown, extra?: Record<string, unknown>) {
  * repeated lazy sweeps can never spam).
  */
 async function notifyEndingSoonAuctions(): Promise<void> {
+  // ends_at is stored as UTC (seeds/tests write toISOString), so the window is
+  // computed in UTC too — independent of the DB session timezone.
   const ending = await all<{ id: number; name: string }>(
     `SELECT id, name FROM products
      WHERE auction = 1 AND status = 'active'
        AND ends_at IS NOT NULL
-       AND ends_at > to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS')
-       AND ends_at <= to_char(now() + interval '2 hours', 'YYYY-MM-DD"T"HH24:MI:SS')`
+       AND ends_at > to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')
+       AND ends_at <= to_char(now() AT TIME ZONE 'UTC' + interval '2 hours', 'YYYY-MM-DD"T"HH24:MI:SS')`
   );
   for (const auction of ending) {
     const bidders = await all<{ user_id: number }>(
@@ -47,13 +49,16 @@ async function notifyEndingSoonAuctions(): Promise<void> {
     );
     for (const b of bidders) {
       const link = `/products/${auction.id}`;
+      // Idempotent even under concurrent sweeps: the partial unique index is
+      // the real guard, ON CONFLICT DO NOTHING absorbs the loser of a race.
       await all(
         `INSERT INTO notifications (user_id, type, title, body, link)
          SELECT $1, 'ending_soon', $2, $3, $4
          WHERE NOT EXISTS (
            SELECT 1 FROM notifications n
            WHERE n.user_id = $1 AND n.type = 'ending_soon' AND n.link = $4
-         )`,
+         )
+         ON CONFLICT DO NOTHING`,
         [
           b.user_id,
           `“${auction.name}” ends in under 2 hours`,
@@ -80,7 +85,8 @@ export async function closeExpiredAuctions(): Promise<void> {
      WHERE id IN (
        SELECT id FROM products
        WHERE auction = 1 AND status = 'active'
-         AND ends_at IS NOT NULL AND ends_at < to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS')
+         AND ends_at IS NOT NULL
+         AND ends_at < to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')
      )
      RETURNING id, name, winner_id`
   );
