@@ -34,7 +34,7 @@ export default function BlogPage() {
           </>
         }
         description={t("description")}
-        image="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1920&q=85"
+        image="/art/canvas.jpg"
       />
 
       <section className="py-16 sm:py-20 bg-cream-50 dark:bg-[#0a0a08] min-h-[50vh]">
@@ -72,7 +72,7 @@ export default function BlogPage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={post.author.avatar} alt={post.author.name} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
-                        <span className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.6rem] font-mono text-gold-500">
+                        <span className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.7rem] font-mono text-gold-500">
                           {post.author.name.slice(0, 1).toUpperCase()}
                         </span>
                       )}

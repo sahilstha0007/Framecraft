@@ -54,6 +54,7 @@ export default function PostView() {
   }, [params.slug]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount: setState happens in async response callbacks
     load();
   }, [load]);
 
@@ -104,7 +105,7 @@ export default function PostView() {
           </Link>
 
           <div className="mt-8">
-            <p className="font-mono text-[0.6rem] tracking-[0.25em] uppercase text-gold-500/70">
+            <p className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-gold-500/70">
               {new Date(post.createdAt).toLocaleDateString(locale, {
                 year: "numeric",
                 month: "long",
@@ -178,7 +179,7 @@ export default function PostView() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.author.avatar} alt={c.author.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
                   ) : (
-                    <span className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.6rem] font-mono text-gold-500 flex-shrink-0">
+                    <span className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.7rem] font-mono text-gold-500 flex-shrink-0">
                       {c.author.name.slice(0, 1).toUpperCase()}
                     </span>
                   )}

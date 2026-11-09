@@ -1,11 +1,3 @@
-@font-face {
-  font-family: 'Dirtyline';
-  src: url('https://fonts.cdnfonts.com/s/15011/Dirtyline36DaysofType.woff') format('woff');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* ── Devanagari (Nepali locale) ──
    The Latin display/body faces (Playfair Display, DM Sans) have no Devanagari
    glyphs. When the locale is `ne`, swap the typeface variables to the Devanagari
@@ -29,32 +21,40 @@ html[lang="ne"] body {
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-cream-50: #fdfbf7;
-  --color-cream-100: #faf6ed;
-  --color-cream-150: #f5efe3;
-  --color-cream-200: #f0e8d5;
-  --color-cream-300: #e5dbc0;
-  --color-cream-400: #d4c7a7;
-  --color-cream-500: #c4b58e;
-  --color-cream-600: #b09f75;
-  --color-cream-700: #9a8a5b;
+  --color-silver-50: #f8fafc;
+  --color-silver-100: #f1f5f9;
+  --color-silver-200: #e2e8f0;
+  --color-silver-300: #cbd5e1;
+  --color-silver-400: #94a3b8;
+  --color-silver-500: #64748b;
+  --color-silver-600: #475569;
+  --color-silver-700: #334155;
+  --color-silver-800: #1e293b;
+  --color-silver-900: #0f172a;
+  --color-silver-950: #020617;
 
-  --color-walnut-50: #f5ede4;
-  --color-walnut-100: #e8d5c0;
-  --color-walnut-200: #d4b893;
-  --color-walnut-300: #c09b6e;
-  --color-walnut-400: #a8804f;
-  --color-walnut-500: #8b663a;
-  --color-walnut-600: #6e4f2e;
-  --color-walnut-700: #543c22;
-  --color-walnut-800: #3d2a18;
-  --color-walnut-900: #2a1c10;
+  --color-chrome-50: #f8fafc;
+  --color-chrome-100: #f1f5f9;
+  --color-chrome-200: #e2e8f0;
+  --color-chrome-300: #cbd5e1;
+  --color-chrome-400: #94a3b8;
+  --color-chrome-500: #64748b;
+  --color-chrome-600: #475569;
+  --color-chrome-700: #334155;
+  --color-chrome-800: #1e293b;
+  --color-chrome-900: #0f172a;
 
-  --color-mahogany-300: #8b5e3c;
-  --color-mahogany-400: #704a2e;
-  --color-mahogany-500: #5a3a22;
-  --color-mahogany-600: #472d1a;
-  --color-mahogany-700: #362214;
+  --color-smoke-50: #f8fafc;
+  --color-smoke-100: #f1f5f9;
+  --color-smoke-200: #e2e8f0;
+  --color-smoke-300: #cbd5e1;
+  --color-smoke-400: #94a3b8;
+  --color-smoke-500: #64748b;
+  --color-smoke-600: #475569;
+  --color-smoke-700: #334155;
+  --color-smoke-800: #1e293b;
+  --color-smoke-900: #0f172a;
+  --color-smoke-950: #020617;
 
   --color-charcoal-50: #f2f2f2;
   --color-charcoal-100: #d9d9d9;
@@ -68,29 +68,130 @@ html[lang="ne"] body {
   --color-charcoal-850: #1a1a1a;
   --color-charcoal-900: #121212;
 
-  --color-gold-50: #fbf6e8;
-  --color-gold-100: #f5e8c4;
-  --color-gold-200: #edd79c;
-  --color-gold-300: #e4c675;
-  --color-gold-400: #d4a838;
-  --color-gold-500: #bf9330;
-  --color-gold-600: #a37d28;
-  --color-gold-700: #866420;
-  --color-gold-800: #6b4e18;
-  --color-gold-900: #4d3811;
+  --color-steel-50: #f0f4f8;
+  --color-steel-100: #d9e2ec;
+  --color-steel-200: #bcccdc;
+  --color-steel-300: #9fb3c8;
+  --color-steel-400: #829ab1;
+  --color-steel-500: #627d98;
+  --color-steel-600: #486581;
+  --color-steel-700: #334e68;
+  --color-steel-800: #243b53;
+  --color-steel-900: #102a43;
+  --color-steel-950: #0c1e35;
+
+  --color-platinum-50: #fafafa;
+  --color-platinum-100: #f4f4f5;
+  --color-platinum-200: #e4e4e7;
+  --color-platinum-300: #d4d4d8;
+  --color-platinum-400: #a1a1aa;
+  --color-platinum-500: #71717a;
+  --color-platinum-600: #52525b;
+  --color-platinum-700: #3f3f46;
+  --color-platinum-800: #27272a;
+  --color-platinum-900: #18181b;
+  --color-platinum-950: #09090b;
+
+  /* ── Warm brand palette ──
+     FrameCraft's heritage gallery theme: warm cream paper, antique gold,
+     walnut and mahogany (Patan woodworking). These tokens were previously
+     used in class names (bg-gold-500, text-cream-50…) but never defined in
+     @theme, so Tailwind v4 silently dropped every utility — the warm brand
+     only survived via inline rgba(212,168,56) styles. Now the whole palette
+     renders from tokens. Single accent for the entire site: gold. */
+  --color-gold-50: #fcf9f0;
+  --color-gold-100: #f7efdc;
+  --color-gold-200: #efdfb4;
+  --color-gold-300: #e4c880;
+  --color-gold-400: #d4a838; /* brand gold — matches inline rgba(212,168,56) */
+  --color-gold-500: #bd9227;
+  --color-gold-600: #8a6117;
+  --color-gold-700: #6b4a10;
+  --color-gold-800: #4d350a;
+  --color-gold-900: #332307;
+
+  --color-cream-50: #fdfbf7; /* warm gallery cream — matches viewport themeColor */
+  --color-cream-100: #faf6ed;
+  --color-cream-200: #f2eadb;
+  --color-cream-300: #e8ddc8;
+  --color-cream-400: #d6c6a8;
+  --color-cream-500: #b8a382;
+  --color-cream-600: #8f7a5c;
+  --color-cream-700: #6f5d44;
+  --color-cream-800: #4d3f2e;
+  --color-cream-900: #2f2619;
+
+  --color-walnut-50: #faf6ef;
+  --color-walnut-100: #f3ead9;
+  --color-walnut-200: #e8d8bc;
+  --color-walnut-300: #d6bd94;
+  --color-walnut-400: #bf9c67;
+  --color-walnut-500: #a57b42;
+  --color-walnut-600: #7d5826;
+  --color-walnut-700: #6b4b20;
+  --color-walnut-800: #3d2a18; /* matches inline rgba(61,42,24) hero text */
+  --color-walnut-900: #2a1c0e;
+
+  --color-mahogany-50: #faf1ed;
+  --color-mahogany-100: #f2dcd3;
+  --color-mahogany-200: #e4b8a7;
+  --color-mahogany-300: #d28f78;
+  --color-mahogany-400: #b96348;
+  --color-mahogany-500: #8f3a22;
+  --color-mahogany-600: #752e1a;
+  --color-mahogany-700: #5c2313;
+  --color-mahogany-800: #42180c;
+  --color-mahogany-900: #2d0f07;
+
+  /* ── Paubha accents ──
+     Pigments lifted from traditional thangka/paubha palettes: sindoor
+     vermilion, lapis-lazuli ultramarine and malachite green. Used as
+     supporting accents around the single brand gold. */
+  --color-vermilion-50: #fdf3f2;
+  --color-vermilion-100: #fbe3e0;
+  --color-vermilion-200: #f6c3bd;
+  --color-vermilion-300: #ef968c;
+  --color-vermilion-400: #e35b4d;
+  --color-vermilion-500: #c8322b; /* sindoor red */
+  --color-vermilion-600: #a3271f;
+  --color-vermilion-700: #7c150f;
+  --color-vermilion-800: #570c08;
+  --color-vermilion-900: #380604;
+
+  --color-lapis-50: #f2f5fc;
+  --color-lapis-100: #e2e9f8;
+  --color-lapis-200: #c0cfef;
+  --color-lapis-300: #93abdf;
+  --color-lapis-400: #5f7cc2;
+  --color-lapis-500: #3b5aa8; /* lapis lazuli */
+  --color-lapis-600: #2b4587;
+  --color-lapis-700: #203467;
+  --color-lapis-800: #16254a;
+  --color-lapis-900: #0d1730;
+
+  --color-malachite-50: #effaf6;
+  --color-malachite-100: #d7f2e8;
+  --color-malachite-200: #aee3d1;
+  --color-malachite-300: #78cdb2;
+  --color-malachite-400: #41b18e;
+  --color-malachite-500: #17906e; /* malachite green */
+  --color-malachite-600: #0f7357;
+  --color-malachite-700: #0a5842;
+  --color-malachite-800: #063e2f;
+  --color-malachite-900: #04281f;
 
   --font-heading: "Playfair Display", Georgia, serif;
   --font-body: "DM Sans", system-ui, sans-serif;
   --font-mono: "DM Mono", ui-monospace, monospace;
 
-  --font-instrument: "Instrument Serif", serif;
-  --font-barlow: "Barlow", sans-serif;
-  --font-dirtyline: "Dirtyline", sans-serif;
-
   --animate-float: float 6s ease-in-out infinite;
   --animate-fade-in: fadeIn 0.6s ease-out forwards;
   --animate-slide-up: slideUp 0.6s ease-out forwards;
   --animate-draw-line: drawLine 1.5s ease-out forwards;
+  --animate-marquee: marquee 36s linear infinite;
+  --animate-marquee-slow: marquee 60s linear infinite;
+  --animate-shimmer: shimmer 2.8s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
 
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
@@ -107,6 +208,14 @@ html[lang="ne"] body {
   @keyframes drawLine {
     from { width: 0; }
     to { width: 100%; }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
   }
 }
 
@@ -135,10 +244,21 @@ html[lang="ne"] body {
     letter-spacing: 0.01em;
   }
 
+  /* Guard against horizontal scroll from any stray fixed-width decoration
+     at every viewport (TV down to 320px phones). `clip` instead of `hidden`
+     so it never creates a scroll container that would break sticky/pinned
+     sections. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+
+
   .dark body,
   body.dark {
     color: var(--color-cream-100);
-    background-color: var(--color-charcoal-900);
+    background-color: #0a0a08; /* warm off-black — brand gallery wall */
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -147,10 +267,11 @@ html[lang="ne"] body {
     letter-spacing: -0.02em;
   }
 
-  /* Refined heading sizes */
-  h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1.1; }
-  h2 { font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.15; }
-  h3 { font-size: clamp(1.35rem, 2.5vw, 1.75rem); line-height: 1.25; }
+  /* Refined heading sizes — caps keep scaling up on very wide screens
+     (TV/4K) so a 3.5m-wide exhibition wall doesn't dwarf the type. */
+  h1 { font-size: clamp(2.5rem, 6vw, 6rem); line-height: 1.05; }
+  h2 { font-size: clamp(2rem, 4.5vw, 4.5rem); line-height: 1.12; }
+  h3 { font-size: clamp(1.35rem, 2.5vw, 2rem); line-height: 1.25; }
 }
 
 @layer utilities {
@@ -167,10 +288,10 @@ html[lang="ne"] body {
 
   .eyebrow {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--color-mahogany-500);
+    color: var(--color-walnut-600);
   }
   .dark .eyebrow {
     color: var(--color-gold-400);
@@ -188,7 +309,101 @@ html[lang="ne"] body {
     pointer-events: none;
   }
   .dark .frame-border::before {
-    border-color: var(--color-charcoal-700);
+    border-color: #2e2a26;
+  }
+
+  /* ── Marketplace display helpers ── */
+
+  /* Gold-leaf gradient text — for hero words and big numerals. */
+  .text-gradient-gold {
+    background: linear-gradient(
+      100deg,
+      var(--color-gold-600) 0%,
+      var(--color-gold-400) 35%,
+      #f4e3ae 50%,
+      var(--color-gold-400) 65%,
+      var(--color-gold-600) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .dark .text-gradient-gold {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-gold-500) 0%,
+      var(--color-gold-300) 35%,
+      #fdf0c8 50%,
+      var(--color-gold-300) 65%,
+      var(--color-gold-500) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  /* Hollow display type — outlined letters for watermark-scale words. */
+  .text-outline {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(140, 110, 40, 0.28);
+  }
+  .dark .text-outline {
+    -webkit-text-stroke: 1px rgba(212, 168, 56, 0.22);
+  }
+
+  /* Newari lattice (aankhijhyal) — a quiet carved-window grid for section
+     backgrounds, built from repeating gradients so it costs nothing. */
+  .bg-lattice {
+    background-image:
+      linear-gradient(rgba(140, 110, 40, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140, 110, 40, 0.055) 1px, transparent 1px),
+      radial-gradient(circle at center, rgba(140, 110, 40, 0.05) 0 1.2px, transparent 1.6px);
+    background-size: 44px 44px, 44px 44px, 44px 44px;
+    background-position: 0 0, 0 0, 22px 22px;
+  }
+  .dark .bg-lattice {
+    background-image:
+      linear-gradient(rgba(212, 168, 56, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 168, 56, 0.05) 1px, transparent 1px),
+      radial-gradient(circle at center, rgba(212, 168, 56, 0.05) 0 1.2px, transparent 1.6px);
+    background-size: 44px 44px, 44px 44px, 44px 44px;
+    background-position: 0 0, 0 0, 22px 22px;
+  }
+
+  /* Prayer-flag ribbon — the five element colors as a thin top border. */
+  .flag-ribbon {
+    height: 3px;
+    background: linear-gradient(
+      to right,
+      #2456a6 0 20%,   /* blue  — sky */
+      #f7f7f2 20% 40%, /* white — wind */
+      #c8322b 40% 60%, /* red   — fire */
+      #158a5c 60% 80%, /* green — water */
+      #e0b23c 80% 100% /* yellow— earth */
+    );
+  }
+
+  /* Soft gold ambient glow behind hero/CTA content. */
+  .glow-gold {
+    box-shadow:
+      0 0 24px rgba(212, 168, 56, 0.18),
+      0 0 90px rgba(212, 168, 56, 0.08);
+  }
+
+  /* Horizontal edge fade for marquees and rails. */
+  .mask-fade-x {
+    -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  }
+
+  /* Thangka sky — deep lapis wash with a warm horizon, used behind dark
+     marketplace bands (auctions, final CTA). */
+  .bg-thangka-sky {
+    background:
+      radial-gradient(ellipse 80% 55% at 50% -10%, rgba(59, 90, 168, 0.32) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 45% at 85% 110%, rgba(200, 50, 43, 0.16) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 40% at 12% 105%, rgba(212, 168, 56, 0.1) 0%, transparent 65%);
   }
 }
 
@@ -204,7 +419,7 @@ html[lang="ne"] body {
   border-radius: 2px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: var(--color-charcoal-600);
+  background: #4a4238;
 }
 
 /* ── Lenis smooth scroll ──
@@ -232,11 +447,11 @@ html.lenis body {
 
 /* Selection */
 ::selection {
-  background: var(--color-gold-200);
-  color: var(--color-charcoal-900);
+  background: var(--color-gold-300);
+  color: var(--color-walnut-900);
 }
 .dark ::selection {
-  background: var(--color-gold-700);
+  background: var(--color-gold-600);
   color: var(--color-cream-100);
 }
 
@@ -283,7 +498,30 @@ html.lenis body {
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Section alternating backgrounds with smoother transitions */
+/* ── Morphing nav: scrolled state ──
+   Applied (alongside .glass-nav) once the page is scrolled. Declared after
+   .glass-nav so the equal-specificity background/shadow override it; this is
+   the real morph the utility classes can't produce because `.glass-nav` is
+   unlayered and always beats layered Tailwind utilities. */
+.glass-nav-scrolled {
+  background: rgba(253, 251, 247, 0.78);
+  border-color: rgba(120, 100, 60, 0.14);
+  box-shadow:
+    0 14px 44px rgba(60, 45, 20, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.dark .glass-nav-scrolled {
+  background: rgba(16, 14, 12, 0.82);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 14px 44px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Section alternating backgrounds with smoother transitions.
+   Warm gallery tones to match the brand: cream steps by day, warm
+   off-blacks by night (never pure black). */
 .section-light {
   background-color: var(--color-cream-50);
   transition: background-color 0.3s ease;
@@ -293,74 +531,16 @@ html.lenis body {
   transition: background-color 0.3s ease;
 }
 .section-deep {
-  background-color: var(--color-cream-150);
+  background-color: var(--color-cream-200);
   transition: background-color 0.3s ease;
 }
 .dark .section-light {
-  background-color: var(--color-charcoal-900);
+  background-color: #0a0a08;
 }
 .dark .section-warm {
-  background-color: var(--color-charcoal-850);
+  background-color: #12100d;
 }
 .dark .section-deep {
-  background-color: var(--color-charcoal-800);
-}
-
-/* ── MicroVisuals hero ── */
-
-.liquid-glass {
-  background: rgba(255,255,255,0.01);
-  background-blend-mode: luminosity;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: none;
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
-  position: relative;
-  overflow: hidden;
-}
-.liquid-glass::before {
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  padding: 1.4px;
-  background: linear-gradient(180deg,
-    rgba(255,255,255,0.45) 0%,
-    rgba(255,255,255,0.15) 20%,
-    rgba(255,255,255,0)    40%,
-    rgba(255,255,255,0)    60%,
-    rgba(255,255,255,0.15) 80%,
-    rgba(255,255,255,0.45) 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-.liquid-glass-strong {
-  background: rgba(255,255,255,0.01);
-  background-blend-mode: luminosity;
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
-  border: none;
-  box-shadow: 4px 4px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.15);
-  position: relative;
-  overflow: hidden;
-}
-.liquid-glass-strong::before {
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  padding: 1.4px;
-  background: linear-gradient(180deg,
-    rgba(255,255,255,0.5) 0%,
-    rgba(255,255,255,0.2) 20%,
-    rgba(255,255,255,0)   40%,
-    rgba(255,255,255,0)   60%,
-    rgba(255,255,255,0.2) 80%,
-    rgba(255,255,255,0.5) 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  background-color: #1a1512;
 }
 

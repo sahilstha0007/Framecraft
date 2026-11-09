@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState, useEffect, useMemo, type ReactNode } from "react";
-import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate, useReducedMotion, type MotionValue } from "framer-motion";
 import { useTheme } from "next-themes";
+import { ChevronsLeftRight } from "lucide-react";
 import NextImage from "next/image";
 
 /* ═══════════════════════════════════════════════════════
@@ -45,6 +46,9 @@ interface MagneticCardProps {
 
 export function MagneticCard({ children, className = "", strength = 8, scrollTilt = 3 }: MagneticCardProps) {
   const ref = useRef<HTMLDivElement>(null);
+  // Scroll-linked tilt is NOT covered by MotionConfig reducedMotion="user"
+  // (that only gates time-based animate/whileInView) — gate it explicitly.
+  const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const scrollRotate = useTransform(scrollYProgress, [0, 0.5, 1], [scrollTilt, 0, -scrollTilt]);
 
@@ -85,6 +89,11 @@ export function MagneticCard({ children, className = "", strength = 8, scrollTil
     x.set(0); y.set(0); rotateX.set(0); rotateY.set(0);
   };
 
+  // Reduced motion: static card, no magnetic hover tilt and no scroll tilt.
+  if (reduce) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       ref={ref}
@@ -117,6 +126,39 @@ interface ScrollWaveProps {
   columns?: number;
 }
 
+/* One wave cell — a full component so the scroll-linked MotionValues are
+   created by hooks called unconditionally at the top level, never inside a
+   `.map()` callback (which would break the Rules of Hooks). */
+function WaveItem({
+  progress,
+  child,
+  row,
+  col,
+}: {
+  progress: MotionValue<number>;
+  child: ReactNode;
+  row: number;
+  col: number;
+}) {
+  const waveDelay = (row + col) * 0.12 + row * 0.08;
+  const inputRange = [waveDelay * 0.4, waveDelay * 0.4 + 0.25];
+  const outputRange = [60, 0];
+  const y = useTransform(progress, inputRange, outputRange);
+  const opacity = useTransform(progress, inputRange, [0, 1]);
+  const blur = useTransform(progress, inputRange, [8, 0]);
+  // Reactive filter — `blur` is a MotionValue, so it must be bound through a
+  // useMotionTemplate. Reading `blur.get()` here would freeze the filter at
+  // its mount-time value (8px) forever, since plain strings in `style` are
+  // never recomputed on scroll.
+  const filterStyle = useMotionTemplate`blur(${blur}px)`;
+  // Reduced motion: wave cells render fully visible, in place.
+  if (useReducedMotion()) {
+    return <div>{child}</div>;
+  }
+
+  return <motion.div style={{ y, opacity, filter: filterStyle }}>{child}</motion.div>;
+}
+
 export function ScrollWave({ children, className = "", columns = 3 }: ScrollWaveProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -135,27 +177,15 @@ export function ScrollWave({ children, className = "", columns = 3 }: ScrollWave
   return (
     <div ref={ref} className={className}>
       <div className={`grid gap-6 ${colsClass}`}>
-        {children.map((child, i) => {
-          const row = Math.floor(i / columns);
-          const col = i % columns;
-          const waveDelay = (row + col) * 0.12 + row * 0.08;
-          const inputRange = [waveDelay * 0.4, waveDelay * 0.4 + 0.25];
-          const outputRange = [60, 0];
-          const y = useTransform(progress, inputRange, outputRange);
-          const opacity = useTransform(progress, inputRange, [0, 1]);
-          const blur = useTransform(progress, inputRange, [8, 0]);
-          // Reactive filter — `blur` is a MotionValue, so it must be bound
-          // through a useMotionTemplate. Reading `blur.get()` here would
-          // freeze the filter at its mount-time value (8px) forever, since
-          // plain strings in `style` are never recomputed on scroll.
-          const filterStyle = useMotionTemplate`blur(${blur}px)`;
-
-          return (
-            <motion.div key={i} style={{ y, opacity, filter: filterStyle }}>
-              {child}
-            </motion.div>
-          );
-        })}
+        {children.map((child, i) => (
+          <WaveItem
+            key={i}
+            progress={progress}
+            child={child}
+            row={Math.floor(i / columns)}
+            col={i % columns}
+          />
+        ))}
       </div>
     </div>
   );
@@ -185,6 +215,11 @@ export function PerspectiveReveal({ children, className = "", startAngle = 70 }:
   const rotateX = useTransform(smoothScroll, [0, 0.5], [startAngle, 0]);
   const y = useTransform(smoothScroll, [0, 0.5], [80, 0]);
   const opacity = useTransform(smoothScroll, [0, 0.12, 0.5], [0, 0.6, 1]);
+
+  // Reduced motion: fully revealed, flat, no drift.
+  if (useReducedMotion()) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <motion.div
@@ -216,6 +251,17 @@ export function BlurReveal({ src, className = "" }: BlurRevealProps) {
   const bright = useTransform(smooth, [0, 0.5], [0.3, 1]);
   const scale = useTransform(smooth, [0, 0.5], [1.2, 1]);
   const filterStyle = useMotionTemplate`brightness(${bright}) blur(${blur}px)`;
+
+  // Reduced motion: sharp, full-brightness image (no blur reveal).
+  if (useReducedMotion()) {
+    return (
+      <div ref={ref} className={`overflow-hidden ${className}`}>
+        <div className="relative w-full h-full">
+          <NextImage src={src} alt="" fill sizes="(max-width: 640px) 100vw, 50vw" className="object-cover" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className={`overflow-hidden ${className}`}>
@@ -251,6 +297,30 @@ interface KineticHeadlineProps {
   stagger?: number;
 }
 
+/* One animated character — a real component so the per-character transforms
+   are created by top-level hook calls, not inside a `.map()` callback. */
+function KineticChar({
+  smooth,
+  char,
+  start,
+  end,
+}: {
+  smooth: MotionValue<number>;
+  char: string;
+  start: number;
+  end: number;
+}) {
+  const y = useTransform(smooth, [start, end], [60, 0]);
+  const opacity = useTransform(smooth, [start, end], [0, 1]);
+  const rotX = useTransform(smooth, [start, end], [40, 0]);
+
+  return (
+    <motion.span style={{ y, opacity, rotateX: rotX, perspective: 600 }} className="inline-block">
+      {char === " " ? "\u00A0" : char}
+    </motion.span>
+  );
+}
+
 export function KineticHeadline({ text, className = "", as: Tag = "h2", stagger = 0.03 }: KineticHeadlineProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -258,26 +328,18 @@ export function KineticHeadline({ text, className = "", as: Tag = "h2", stagger 
 
   const chars = text.split("");
 
+  // Reduced motion: render the headline as plain static text.
+  if (useReducedMotion()) {
+    return <div className={className}>{text}</div>;
+  }
+
   return (
     <div ref={ref} className={`flex flex-wrap ${className}`}>
       {chars.map((char, i) => {
         const delay = i * stagger;
         const start = delay * 0.3;
         const end = start + 0.35;
-
-        const y = useTransform(smooth, [start, end], [60, 0]);
-        const opacity = useTransform(smooth, [start, end], [0, 1]);
-        const rotX = useTransform(smooth, [start, end], [40, 0]);
-
-        return (
-          <motion.span
-            key={i}
-            style={{ y, opacity, rotateX: rotX, perspective: 600 }}
-            className="inline-block"
-          >
-            {char === " " ? " " : char}
-          </motion.span>
-        );
+        return <KineticChar key={i} smooth={smooth} char={char} start={start} end={end} />;
       })}
     </div>
   );
@@ -318,7 +380,7 @@ export function MorphDivider({ className = "", color, lightColor }: MorphDivider
           d={d}
           className={
             !color
-              ? "fill-cream-150 dark:fill-zinc-950"
+              ? "fill-cream-200 dark:fill-[#0a0a08]"
               : lightColor
                 ? "fill-[var(--morph-light)] dark:fill-[var(--morph-dark)]"
                 : undefined
@@ -354,11 +416,21 @@ export function ScrollGradient({
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
 
-  // Hydration-safe theme detection: next-themes only exposes `resolvedTheme`
-  // after mount, so the server render and the first client render agree (both
-  // default to the dark `colors` palette), then this flips once mounted.
+  // next-themes resolves the stored theme from localStorage BEFORE hydration
+  // (its inline head script sets the `dark` class on <html>), so `resolvedTheme`
+  // is already "dark" on the client's FIRST render while the server always
+  // rendered the light palette. Picking the palette from `resolvedTheme` during
+  // render therefore made SSR and the first client render disagree on the
+  // inline backgroundColor — the hydration mismatch seen in the console. Gate
+  // on `mounted` instead: until the effect runs, both sides render the same
+  // theme-agnostic background (inherited page color), and the scroll-linked
+  // gradient only kicks in after mount, already on the correct palette.
   const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount flip to defer theme-dependent rendering past hydration
+  useEffect(() => setMounted(true), []);
+
+  const isDark = mounted && resolvedTheme === "dark";
   const activeColors = lightColors && !isDark ? lightColors : colors;
 
   const steps = activeColors.length - 1;
@@ -366,17 +438,11 @@ export function ScrollGradient({
   const bg = useTransform(scrollYProgress, stops, activeColors);
 
   return (
-    <motion.div ref={ref} style={{ backgroundColor: bg }} className={className}>
+    <motion.div ref={ref} style={{ backgroundColor: mounted ? bg : undefined }} className={className}>
       {children}
     </motion.div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════
-   SPLIT DRIFT
-   Two columns that scroll at different speeds,
-   creating an independent parallax narrative.
-   ═══════════════════════════════════════════════════════ */
 
 interface SplitDriftProps {
   left: ReactNode;
@@ -392,6 +458,16 @@ export function SplitDrift({ left, right, className = "", leftSpeed = 0.2, right
 
   const lY = useTransform(scrollYProgress, [0, 1], [leftSpeed * 150, leftSpeed * -150]);
   const rY = useTransform(scrollYProgress, [0, 1], [rightSpeed * -120, rightSpeed * 120]);
+
+  // Reduced motion: static two-column layout (no parallel drift).
+  if (useReducedMotion()) {
+    return (
+      <div ref={ref} className={`grid grid-cols-1 lg:grid-cols-2 gap-8 ${className}`}>
+        <div>{left}</div>
+        <div>{right}</div>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className={`grid grid-cols-1 lg:grid-cols-2 gap-8 ${className}`}>

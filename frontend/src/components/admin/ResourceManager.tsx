@@ -113,7 +113,7 @@ function ResourceForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {resource.fields.map((field) => (
           <label key={field.key} className={field.type === "textarea" ? "sm:col-span-2 block" : "block"}>
-            <span className="block font-mono text-[0.6rem] tracking-[0.2em] uppercase text-gold-400/70 mb-1.5">
+            <span className="block font-mono text-[0.7rem] tracking-[0.2em] uppercase text-gold-400/70 mb-1.5">
               {field.label}
             </span>
 
@@ -227,6 +227,7 @@ export default function ResourceManager({
   }, [listPath, onToast]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount: setState happens in async response callbacks
     load();
   }, [load]);
 

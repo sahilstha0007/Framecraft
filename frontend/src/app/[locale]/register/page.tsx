@@ -51,7 +51,7 @@ export default function RegisterPage() {
     "w-full px-4 py-3 bg-white dark:bg-charcoal-800 border border-cream-300 dark:border-charcoal-600 rounded-sm text-charcoal-800 dark:text-cream-100 placeholder-charcoal-400 dark:placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-gold-400 dark:focus:ring-gold-500 focus:border-transparent transition-[border-color,box-shadow]";
 
   return (
-    <section className="min-h-screen pt-32 pb-24 bg-cream-50 dark:bg-[#0a0a08] flex items-center">
+    <section className="min-h-[100dvh] pt-32 pb-24 bg-cream-50 dark:bg-[#0a0a08] flex items-center">
       <div className="max-w-md mx-auto px-4 w-full">
         <motion.div
           initial={{ opacity: 0, y: 16 }}

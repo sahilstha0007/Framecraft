@@ -64,6 +64,7 @@ export default function SellerView() {
   }, [params.id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount: setState happens in async response callbacks
     load();
   }, [load]);
 
@@ -108,7 +109,7 @@ export default function SellerView() {
   return (
     <>
       <section className="pt-32 pb-10 bg-cream-50 dark:bg-[#0a0a08]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10">
           <Link href="/sellers" className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-charcoal-500 dark:text-white/40 hover:text-gold-600 dark:hover:text-gold-400 transition-colors">
             <ArrowLeft size={13} /> {t("backToSellers")}
           </Link>
@@ -147,7 +148,7 @@ export default function SellerView() {
                     {seller.bio}
                   </p>
                 )}
-                <div className="mt-5 flex flex-wrap items-center gap-5 font-mono text-[0.6rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/35">
+                <div className="mt-5 flex flex-wrap items-center gap-5 font-mono text-[0.7rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/35">
                   {seller.rating != null && (
                     <span className="inline-flex items-center gap-1.5">
                       <Star size={12} className="fill-gold-400 text-gold-400" />
@@ -183,7 +184,7 @@ export default function SellerView() {
 
       {/* Products */}
       <section className="py-12 bg-cream-50 dark:bg-[#0a0a08]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10">
           <h2 className="font-heading text-xl font-semibold text-charcoal-900 dark:text-white mb-6">
             {t("shopTitle")}
           </h2>
@@ -204,7 +205,7 @@ export default function SellerView() {
       {/* Posts */}
       {posts.length > 0 && (
         <section className="py-12 pb-20 bg-cream-50 dark:bg-[#0a0a08]">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10">
             <h2 className="font-heading text-xl font-semibold text-charcoal-900 dark:text-white mb-6">
               {t("storiesTitle")}
             </h2>
@@ -226,7 +227,7 @@ export default function SellerView() {
                     </div>
                   )}
                   <div className="p-5">
-                    <p className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-gold-500/70">
+                    <p className="font-mono text-[0.7rem] tracking-[0.2em] uppercase text-gold-500/70">
                       {new Date(post.createdAt).toLocaleDateString(locale)}
                     </p>
                     <h3 className="mt-2 font-heading text-base font-semibold text-charcoal-900 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors line-clamp-2">

@@ -1,8 +1,15 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
-import { useTranslations } from "next-intl";
+import { useEffect, useRef, type ReactNode } from "react";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+} from "framer-motion";
 import NextImage from "next/image";
 
 /* ═══════════════════════════════════════════════════
@@ -32,15 +39,32 @@ export function DepthParallax({
   midChildren,
   fgChildren,
   className = "",
-  height = "h-screen",
+  height = "h-[100dvh]",
 }: DepthParallaxProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  // Reduced motion: no layer drift — the composition stays static in place.
+  const reduce = useReducedMotion();
 
   const bgY = useTransform(scrollYProgress, [0, 1], ["-15%", "15%"]);
   const midY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
   const fgY = useTransform(scrollYProgress, [0, 1], ["4%", "-4%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.6, 1, 1, 0.6]);
+
+  if (reduce) {
+    return (
+      <div ref={ref} className={`relative overflow-hidden ${height} ${className}`}>
+        <div className="absolute inset-0">
+          {bgImage && (
+            <NextImage src={bgImage} alt="" fill sizes="100vw" className="object-cover scale-110" />
+          )}
+          {bgChildren}
+        </div>
+        <div className="absolute inset-0">{midChildren}</div>
+        <div className="relative z-10 h-full">{fgChildren}</div>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className={`relative overflow-hidden ${height} ${className}`}>
@@ -162,7 +186,7 @@ export function RevealShutter({
   children,
   direction = "right",
   className = "",
-  shutterColor = "bg-cream-100 dark:bg-black",
+  shutterColor = "bg-cream-100 dark:bg-[#0a0a08]",
 }: RevealShutterProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -227,15 +251,59 @@ interface HorizontalScrollProps {
 
 export function HorizontalScroll({ children, className = "" }: HorizontalScrollProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start end", "end start"] });
-  const x = useTransform(scrollYProgress, [0, 1], ["5%", "-55%"]);
-  const smoothX = useSpring(x, { stiffness: 40, damping: 25 });
+
+  // Measure the track so the translate is exact at every breakpoint: the
+  // run ends with the last card pulled fully into view (no hardcoded -55%
+  // that either overshoots on narrow screens or strands cards on wide/TV).
+  // The measurement lives in a ref (not state) and the translate is written
+  // imperatively into a stable motion value, so late image loads / resizes
+  // that change the track width never rebuild the transform or spring — the
+  // track just glides to the new end with no mid-scroll snap.
+  const maxXRef = useRef(0);
+  const x = useMotionValue(0);
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    x.set(-v * maxXRef.current);
+  });
+  const smoothX = useSpring(x, { stiffness: 60, damping: 30 });
+
+  useEffect(() => {
+    const measure = () => {
+      const track = trackRef.current;
+      const viewport = containerRef.current;
+      if (!track || !viewport) return;
+      maxXRef.current = Math.max(0, track.scrollWidth - viewport.clientWidth);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
   const progress = useTransform(scrollYProgress, [0, 1], [0, 1]);
   const smoothProgress = useSpring(progress, { stiffness: 60, damping: 25 });
 
+  // Reduced motion: a horizontally scrollable row instead of a pinned,
+  // scroll-translated track — content stays reachable without animation.
+  if (reduce) {
+    return (
+      <section ref={containerRef} className={`relative ${className}`}>
+        <div className="overflow-x-auto px-8 py-8">
+          <div className="flex gap-6 w-max">{children}</div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section ref={containerRef} className={`relative ${className}`}>
-      <div className="sticky top-0 h-screen flex items-center overflow-hidden">
+      <div className="sticky top-0 h-[100dvh] flex items-center overflow-hidden">
         {/* Scroll progress hairline — gold fills as you travel the gallery */}
         <div className="absolute top-0 left-0 right-0 z-10">
           <div className="h-px bg-charcoal-200 dark:bg-white/10" />
@@ -244,7 +312,7 @@ export function HorizontalScroll({ children, className = "" }: HorizontalScrollP
             style={{ scaleX: smoothProgress, originX: 0 }}
           />
         </div>
-        <motion.div style={{ x: smoothX }} className="flex gap-6 px-8">
+        <motion.div ref={trackRef} style={{ x: smoothX }} className="flex gap-6 px-8">
           {children}
         </motion.div>
       </div>
@@ -264,10 +332,12 @@ interface ScrollCounterProps {
   target: number;
   suffix?: string;
   label: string;
+  /** Short caption that brightens on hover — fills the band with real content. */
+  desc?: string;
   className?: string;
 }
 
-export function ScrollCounter({ target, suffix = "", label, className = "" }: ScrollCounterProps) {
+export function ScrollCounter({ target, suffix = "", label, desc, className = "" }: ScrollCounterProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const count = useTransform(scrollYProgress, [0, 0.4, 0.6, 1], [0, target * 0.6, target, target]);
@@ -276,74 +346,24 @@ export function ScrollCounter({ target, suffix = "", label, className = "" }: Sc
   return (
     /* Note: styled for the dark stats band on the home page — if this is ever
        reused on a light background, make the label color theme-aware. */
-    <div ref={ref} className={`text-center ${className}`}>
-      <div className="text-5xl sm:text-7xl font-heading font-bold text-gold-400 tabular-nums">
+    <div ref={ref} className={`text-center group relative ${className}`}>
+      {/* Number lifts on hover (transform-only) */}
+      <div className="text-5xl sm:text-7xl font-heading font-bold text-gold-400 tabular-nums group-hover:-translate-y-1 transition-transform duration-500 motion-reduce:transform-none">
         <motion.span>{rounded}</motion.span>
         <span className="text-3xl sm:text-4xl">{suffix}</span>
       </div>
-      <div className="mt-2 font-mono text-[0.55rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/40">{label}</div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   HOVER SWAP CARD (before / after)
-   ═══════════════════════════════════════════════════ */
-
-interface HoverSwapCardProps {
-  primaryImage: string;
-  hoverImage: string;
-  title: string;
-  subtitle: string;
-  onClick?: () => void;
-}
-
-export function HoverSwapCard({ primaryImage, hoverImage, title, subtitle, onClick }: HoverSwapCardProps) {
-  const t = useTranslations("home");
-  return (
-    <div
-      className="group relative h-80 sm:h-96 overflow-hidden cursor-pointer border border-charcoal-200/60 dark:border-white/[0.06] bg-black focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400 transition-colors duration-500 hover:border-gold-500/40 dark:hover:border-gold-400/30"
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
-    >
-      {/* Images cross-fade on hover — the "before/after" reveal */}
-      <NextImage
-        src={primaryImage}
-        alt=""
-        fill
-        sizes="(max-width: 640px) 100vw, 33vw"
-        className="object-cover transition-opacity duration-700 group-hover:opacity-0"
+      <div className="mt-2 font-mono text-[0.7rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/40">{label}</div>
+      {/* Growing gold hairline (scale-only) */}
+      <span
+        className="mx-auto mt-4 block h-px w-16 bg-gold-400/25 scale-x-50 group-hover:scale-x-100 origin-center transition-transform duration-500 motion-reduce:transform-none"
+        aria-hidden="true"
       />
-      <NextImage
-        src={hoverImage}
-        alt=""
-        fill
-        sizes="(max-width: 640px) 100vw, 33vw"
-        className="object-cover scale-[1.02] transition-opacity duration-700 opacity-0 group-hover:opacity-100"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-
-      {/* Hover hint — fades out once the swap is engaged */}
-      <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2.5 py-1 bg-black/50 backdrop-blur text-[0.5rem] font-mono tracking-widest uppercase text-white/60 border border-white/10 transition-opacity duration-500 group-hover:opacity-0">
-        <span className="w-1.5 h-1.5 rounded-full bg-gold-400/70" aria-hidden="true" />
-        {t("hoverToCompare")}
-      </div>
-
-      <div className="absolute bottom-5 left-5">
-        <div className="flex gap-2 mb-1">
-          <span className="px-2 py-0.5 bg-white/10 backdrop-blur text-[0.5rem] font-mono tracking-widest uppercase text-white/70 border border-white/10">{t("before")}</span>
-          <span className="px-2 py-0.5 bg-gold-500/80 text-[0.5rem] font-mono tracking-widest uppercase text-black">{t("after")}</span>
-        </div>
-        <h3 className="text-lg font-heading font-semibold text-white">{title}</h3>
-        <p className="text-sm text-white/50">{subtitle}</p>
-      </div>
+      {/* Caption — always present so the band reads full; brightens on hover */}
+      {desc && (
+        <p className="mt-3 max-w-[230px] mx-auto text-xs leading-relaxed text-charcoal-500/80 dark:text-white/40 opacity-85 group-hover:opacity-100 group-hover:text-gold-700 dark:group-hover:text-gold-300 transition-[color,opacity] duration-500 motion-reduce:opacity-100">
+          {desc}
+        </p>
+      )}
     </div>
   );
 }

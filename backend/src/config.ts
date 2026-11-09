@@ -1,6 +1,11 @@
 export const config = {
   port: Number(process.env.PORT ?? 3001),
-  frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://localhost:3000",
+  /** Allowed CORS origins — comma-separated list, e.g.
+   *  FRONTEND_ORIGIN="http://localhost:3000,http://localhost:3100" */
+  frontendOrigins: (process.env.FRONTEND_ORIGIN ?? "http://localhost:3000")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
   /**
    * PostgreSQL connection string.
    * Defaults to the local podman dev instance:
@@ -33,6 +38,23 @@ export const config = {
   esewaProductCode: process.env.ESEWA_PRODUCT_CODE ?? "EPAYTEST",
   esewaApi: process.env.ESEWA_API ?? "https://rc-epay.esewa.com.np",
 };
+
+/* ── Production guards ─────────────────────────────────────────────────────
+   Refuse to boot half-configured in production; stay frictionless in dev. */
+const isProd = process.env.NODE_ENV === "production";
+if (isProd) {
+  if (!process.env.ADMIN_KEY) {
+    throw new Error("[config] ADMIN_KEY must be set in production.");
+  }
+  if (!process.env.KHALTI_SECRET_KEY) {
+    console.warn("[config] KHALTI_SECRET_KEY not set — Khalti checkout will fail verification.");
+  }
+  if (!process.env.FRONTEND_ORIGIN) {
+    throw new Error(
+      "[config] FRONTEND_ORIGIN must be set in production (the frontend URL allowed by CORS, e.g. https://kalabazaar.com.np)."
+    );
+  }
+}
 
 if (!process.env.ADMIN_KEY && process.env.NODE_ENV !== "test") {
   console.warn(

@@ -46,11 +46,11 @@ export default function SellersPage() {
           </>
         }
         description={t("description")}
-        image="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1920&q=85"
+        image="/art/canvas.jpg"
       />
 
       <section className="py-16 sm:py-20 bg-cream-50 dark:bg-[#0a0a08] min-h-[50vh]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10">
           <div className="relative w-full lg:w-80 mb-10">
             <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-charcoal-400 dark:text-white/30 pointer-events-none" />
             <input
@@ -102,7 +102,7 @@ export default function SellersPage() {
                       {s.bio}
                     </p>
                   )}
-                  <div className="mt-5 flex items-center gap-5 font-mono text-[0.55rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/35">
+                  <div className="mt-5 flex items-center gap-5 font-mono text-[0.7rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/35">
                     <span>
                       {s.productCount} {s.productCount === 1 ? t("product") : t("products")}
                     </span>

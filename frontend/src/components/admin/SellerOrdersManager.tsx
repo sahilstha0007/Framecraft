@@ -52,6 +52,7 @@ export default function SellerOrdersManager({ onToast }: { onToast: (toast: Toas
       .finally(() => setLoading(false));
   }, [onToast]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount: setState happens in async response callbacks
   useEffect(load, [load]);
 
   const save = async (id: number, body: { status?: string; notes?: string }) => {
@@ -90,7 +91,7 @@ export default function SellerOrdersManager({ onToast }: { onToast: (toast: Toas
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
-                <p className="font-mono text-[0.6rem] tracking-[0.2em] uppercase text-cream-500/60">#{o.id}</p>
+                <p className="font-mono text-[0.7rem] tracking-[0.2em] uppercase text-cream-500/60">#{o.id}</p>
                 <StatusBadge status={o.status} label={ta(statusKey(o.status))} />
               </div>
               <p className="mt-2 font-medium text-cream-100">{o.customerName}</p>
@@ -135,7 +136,7 @@ export default function SellerOrdersManager({ onToast }: { onToast: (toast: Toas
 
           <div className="mt-4 flex items-end gap-2">
             <label className="flex-1 block">
-              <span className="flex items-center gap-1.5 font-mono text-[0.55rem] tracking-[0.2em] uppercase text-cream-500/50 mb-1.5">
+              <span className="flex items-center gap-1.5 font-mono text-[0.7rem] tracking-[0.2em] uppercase text-cream-500/50 mb-1.5">
                 <StickyNote size={11} /> {ta("notes")}
               </span>
               <textarea

@@ -8,8 +8,9 @@
     "dev": "bun --hot src/index.ts",
     "start": "bun src/index.ts",
     "seed": "bun src/db/seed.ts",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "test": "bun run test:db && bun test tests/",
+    "typecheck": "tsc --noEmit",
+    "test:db": "PGPASSWORD=framecraft psql -h localhost -U framecraft -d postgres -c \"DROP DATABASE IF EXISTS kalabazaar_test WITH (FORCE)\" -c \"CREATE DATABASE kalabazaar_test\" >/dev/null"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",

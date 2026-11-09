@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef, type CSSProperties, type ReactNode } from "react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import NextImage from "next/image";
 
 interface ScrollRevealProps {
@@ -58,10 +58,74 @@ export function ParallaxLayer({ children, speed = 0.5, className = "" }: Paralla
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], [speed * 100, speed * -100]);
 
+  // Reduced motion: static layer (scroll-linked drift isn't covered by
+  // MotionConfig reducedMotion="user").
+  if (useReducedMotion()) {
+    return <div ref={ref} className={className}>{children}</div>;
+  }
+
   return (
     <motion.div ref={ref} style={{ y }} className={className}>
       {children}
     </motion.div>
+  );
+}
+
+/* ── Giant background word drifting on scroll (watermark) ──
+   A huge outline word pinned behind a section that travels vertically at
+   its own speed — the "parallel" layer beneath the content. Paired with
+   per-item ParallaxLayer drift it creates genuine multi-speed depth. */
+interface DriftWatermarkProps {
+  text: string;
+  className?: string; // positioning on the wrapper (e.g. "absolute inset-0")
+  speed?: number;     // 0.1–1, higher = more drift
+  stroke?: string;    // outline color; default is a faint gold
+  sizeClass?: string; // font size utility (default text-[26vw])
+}
+
+export function DriftWatermark({
+  text,
+  className = "",
+  speed = 0.35,
+  stroke = "1.5px rgba(212,168,56,0.22)",
+  sizeClass = "text-[26vw]",
+}: DriftWatermarkProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], [`${speed * 24}%`, `${-speed * 24}%`]);
+
+  const outlineStyle: CSSProperties = {
+    WebkitTextStroke: stroke,
+    color: "transparent",
+  };
+
+  // Reduced motion: static watermark.
+  if (useReducedMotion()) {
+    return (
+      <div ref={ref} aria-hidden="true" className={`pointer-events-none select-none overflow-hidden ${className}`}>
+        <div className="flex h-full w-full items-center justify-center">
+          <span
+            className={`font-heading font-bold whitespace-nowrap leading-none tracking-tight ${sizeClass}`}
+            style={outlineStyle}
+          >
+            {text}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={ref} aria-hidden="true" className={`pointer-events-none select-none overflow-hidden ${className}`}>
+      <motion.div style={{ y }} className="flex h-full w-full items-center justify-center">
+        <span
+          className={`font-heading font-bold whitespace-nowrap leading-none tracking-tight ${sizeClass}`}
+          style={outlineStyle}
+        >
+          {text}
+        </span>
+      </motion.div>
+    </div>
   );
 }
 
@@ -114,22 +178,5 @@ export function RevealText({ text, className = "", delay = 0 }: RevealTextProps)
         </motion.span>
       ))}
     </span>
-  );
-}
-
-/* ── Progress bar that fills on scroll ── */
-interface ScrollProgressProps {
-  className?: string;
-}
-
-export function ScrollProgress({ className = "" }: ScrollProgressProps) {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
-
-  return (
-    <motion.div
-      style={{ scaleX }}
-      className={`fixed top-0 left-0 right-0 h-[2px] bg-gold-500 origin-left z-[60] ${className}`}
-    />
   );
 }

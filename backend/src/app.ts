@@ -2,16 +2,6 @@ import { Elysia, t } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { config } from "./config";
 import { healthRoutes } from "./routes/health";
-import { framesRoutes } from "./routes/frames";
-import { galleryRoutes } from "./routes/gallery";
-import { servicesRoutes } from "./routes/services";
-import { testimonialsRoutes } from "./routes/testimonials";
-import { teamRoutes } from "./routes/team";
-import { optionsRoutes } from "./routes/options";
-import { quoteRoutes } from "./routes/quote";
-import { bookingsRoutes, myRequestsRoutes } from "./routes/bookings";
-import { contactRoutes } from "./routes/contact";
-import { newsletterRoutes } from "./routes/newsletter";
 import { adminRoutes, adminAnalyticsRoutes } from "./routes/admin";
 import { activityRoutes } from "./routes/activity";
 import { authRoutes, bootstrapSellerRoutes } from "./routes/auth";
@@ -28,11 +18,55 @@ import { sellerRoutes } from "./routes/seller";
 import { paymentsRoutes } from "./routes/payments";
 import { settingsRoutes, settingsWriteRoutes } from "./routes/settings";
 
+/* ── Rate limiting (fixed-window, in-memory) ─────────────────────────────
+   Protects the expensive/abusable surfaces: credential guessing on /api/auth,
+   gateway calls + order placement on /api/payments and POST /api/orders.
+   Single-node only — swap for Redis when this scales past one instance. */
+const windows = new Map<string, { count: number; resetAt: number }>();
+
+function hitLimit(key: string, max: number, windowMs: number): boolean {
+  const now = Date.now();
+  const bucket = windows.get(key);
+  if (!bucket || bucket.resetAt <= now) {
+    // Opportunistic cleanup so the map can't grow without bound.
+    if (windows.size > 10_000) {
+      for (const [k, v] of windows) if (v.resetAt <= now) windows.delete(k);
+    }
+    windows.set(key, { count: 1, resetAt: now + windowMs });
+    return false;
+  }
+  bucket.count += 1;
+  return bucket.count > max;
+}
+
+const LIMITS: { test: RegExp; max: number; windowMs: number }[] = [
+  { test: /^\/api\/auth\/login$/, max: 10, windowMs: 60_000 },
+  { test: /^\/api\/auth\/register$/, max: 20, windowMs: 60_000 },
+  { test: /^\/api\/payments/, max: 20, windowMs: 60_000 },
+  { test: /^\/api\/orders$/, max: 20, windowMs: 60_000 },
+];
+
 export const app = new Elysia()
-  .use(cors({ origin: config.frontendOrigin, credentials: true }))
+  .use(cors({ origin: config.frontendOrigins, credentials: true }))
+  // onRequest runs before routing for EVERY request — including routes
+  // registered through .use() plugins (onBeforeHandle does not).
+  .onRequest(({ request }) => {
+    const path = new URL(request.url).pathname;
+    for (const rule of LIMITS) {
+      if (!rule.test.test(path)) continue;
+      const ip =
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+      if (hitLimit(`${ip}:${rule.test.source}`, rule.max, rule.windowMs)) {
+        return new Response(
+          JSON.stringify({ error: "Too many requests. Please slow down." }),
+          { status: 429, headers: { "content-type": "application/json" } }
+        );
+      }
+    }
+  })
   // Never let the browser cache account-scoped responses (shared machines).
   .onAfterHandle(({ set, path }) => {
-    if (/^\/api\/(auth|my|seller|me|bookings|quotes|customers|settings|payments)/.test(path)) {
+    if (/^\/api\/(auth|my|seller|me|customers|settings|payments)/.test(path)) {
       set.headers["Cache-Control"] = "private, no-store";
     }
   })
@@ -54,34 +88,13 @@ export const app = new Elysia()
     return { error: "Internal Server Error" };
   })
   .get("/api", () => ({
-    name: "FrameCraft API",
-    version: "1.0.0",
+    name: "Kala Bazaar API",
+    version: "2.0.0",
     endpoints: [
       "GET /api/health",
-      "GET /api/frames?category=&popular=&search=",
-      "GET /api/frames/:id",
-      "GET /api/gallery?category=",
-      "GET /api/gallery/:id",
-      "GET /api/services",
-      "GET /api/services/:id",
-      "GET /api/testimonials",
-      "GET /api/team",
-      "GET /api/options/glass-types",
-      "GET /api/options/mat-options",
-      "POST /api/quote",
-      "GET /api/quotes/:id",
-      "GET /api/bookings",
-      "POST /api/bookings",
-      "GET /api/contacts",
-      "POST /api/contact",
-      "POST /api/newsletter/subscribe",
       "GET /api/auth/me",
       "POST /api/auth/register | login | logout",
       "POST /api/auth/bootstrap-seller (x-admin-key)",
-      "GET /api/bookings (seller) · PATCH /api/bookings/:id (seller)",
-      "GET /api/bookings/my (customer)",
-      "GET /api/quotes (seller) · GET /api/quotes/:id",
-      "GET /api/my/quotes (customer) · PATCH /api/quotes/:id (seller)",
       "GET /api/users · PATCH/DELETE /api/users/:id (admin)",
       "GET /api/products?category=&search=&featured=&auction=&status=",
       "GET /api/products/:id · GET /api/products/:id/bids",
@@ -92,26 +105,17 @@ export const app = new Elysia()
       "GET /api/sellers · GET /api/sellers/:id · POST/DELETE /api/sellers/:id/follow",
       "POST/DELETE /api/products/:id/like · GET /api/me/likes",
       "GET/POST /api/comments · DELETE /api/comments/:id",
-      "GET /api/seller/products|posts|orders (vendor shop)",
+      "GET/POST /api/products/:id/reviews · PUT /api/reviews/:id/reply",
+      "GET /api/seller/products|posts|orders|analytics (vendor shop)",
       "POST /api/payments/checkout · GET /api/payments/verify/khalti|esewa",
       "PUT /api/me/profile · PUT /api/me/password",
       "GET /api/settings · PUT /api/settings (admin)",
-      "POST/PUT/DELETE /api/:resource (admin session required)",
+      "GET /api/admin/analytics (admin)",
+      "POST/PUT/DELETE /api/products (admin session required)",
     ],
   }))
   .use(healthRoutes)
   .use(activityRoutes)
-  .use(framesRoutes)
-  .use(galleryRoutes)
-  .use(servicesRoutes)
-  .use(testimonialsRoutes)
-  .use(teamRoutes)
-  .use(optionsRoutes)
-  .use(quoteRoutes)
-  .use(bookingsRoutes)
-  .use(myRequestsRoutes)
-  .use(contactRoutes)
-  .use(newsletterRoutes)
   .use(authRoutes)
   .use(bootstrapSellerRoutes)
   .use(usersRoutes)

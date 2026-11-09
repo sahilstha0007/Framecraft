@@ -4,7 +4,7 @@ import { Moon, Sun, Monitor } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useHydrated } from "@/lib/useHydrated";
 
 /**
  * Theme toggle — a 3-state cycle: System → Light → Dark.
@@ -19,11 +19,9 @@ import { useEffect, useState } from "react";
 export default function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const t = useTranslations("nav");
-  const [mounted, setMounted] = useState(false);
-
   // Avoid hydration mismatch: the icon depends on the resolved theme which is
   // only known on the client. Render a neutral placeholder until mounted.
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   // Cycle: system → light → dark → system.
   const cycle = () => {

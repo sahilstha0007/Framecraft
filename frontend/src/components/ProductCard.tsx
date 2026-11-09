@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, Check, Gavel, Timer, Star } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -8,6 +8,54 @@ import NextImage from "next/image";
 import { Link } from "@/i18n/navigation";
 import { formatNPR } from "@/lib/nepali";
 import { useCart } from "@/lib/cart";
+import { useHydrated } from "@/lib/useHydrated";
+
+/* ── Live auction countdown chip ─────────────────────────────────────────────
+   Ticks down to the closing moment of an auction in real time (1s interval).
+   Only rendered after mount so the server and first client render agree —
+   the remaining time is client-local and must never hydrate differently. */
+function getCountdown(endsAt: string): { label: string; ended: boolean } {
+  // endsAt is stored as "YYYY-MM-DD HH:MM:SS" — parsed the same way the
+  // product page parses it (treated as local time), so both stay in sync.
+  const end = new Date(endsAt.replace(" ", "T")).getTime();
+  if (Number.isNaN(end)) return { label: "", ended: true };
+  const ms = end - Date.now();
+  if (ms <= 0) return { label: "0d 00:00:00", ended: true };
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    label: d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`,
+    ended: false,
+  };
+}
+
+function EndsInChip({ endsAt }: { endsAt: string }) {
+  const [state, setState] = useState(() => getCountdown(endsAt));
+  useEffect(() => {
+    // Once the auction closes the timer freezes — no dead ticking.
+    if (state.ended) return;
+    const id = setInterval(() => {
+      const next = getCountdown(endsAt);
+      setState(next);
+      if (next.ended) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [endsAt, state.ended]);
+  return (
+    <span
+      className={`absolute bottom-3 left-3 px-2.5 py-1 font-mono text-[0.65rem] tracking-[0.15em] uppercase bg-[#0a0a08]/80 backdrop-blur inline-flex items-center gap-1.5 ${
+        state.ended ? "text-white/25" : "text-gold-400"
+      }`}
+    >
+      <Timer size={11} />
+      <span className="tabular-nums">{state.label}</span>
+    </span>
+  );
+}
 
 export interface ShopProduct {
   id: number;
@@ -30,11 +78,13 @@ export interface ShopProduct {
   reviewCount?: number;
 }
 
-export default function ProductCard({ product, index }: { product: ShopProduct; index: number }) {
+function ProductCard({ product, index }: { product: ShopProduct; index: number }) {
   const t = useTranslations("shopPage");
   const locale = useLocale();
   const { add } = useCart();
   const [added, setAdded] = useState(false);
+  // Gate the ticking countdown behind hydration so SSR + first client render match.
+  const mounted = useHydrated();
   const outOfStock = product.stock <= 0;
 
   const addToCart = () => {
@@ -64,35 +114,38 @@ export default function ProductCard({ product, index }: { product: ShopProduct; 
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a08]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
         {product.featured && (
-          <span className="absolute top-3 left-3 px-2.5 py-1 text-[0.55rem] font-mono tracking-[0.15em] uppercase text-[#0a0a08] bg-gold-500">
+          <span className="absolute top-3 left-3 px-2.5 py-1 text-[0.65rem] font-mono tracking-[0.15em] uppercase text-[#0a0a08] bg-gold-500">
             ★ {t("featured")}
           </span>
         )}
         {product.auction ? (
-          <span className="absolute top-3 right-3 px-2.5 py-1 text-[0.55rem] font-mono tracking-[0.15em] uppercase text-gold-400 bg-[#0a0a08]/80 backdrop-blur inline-flex items-center gap-1">
-            <Gavel size={10} /> {t("auction")}
+          <span className="absolute top-3 right-3 px-2.5 py-1 text-[0.65rem] font-mono tracking-[0.15em] uppercase text-gold-400 bg-[#0a0a08]/80 backdrop-blur inline-flex items-center gap-1">
+            <Gavel size={11} /> {t("auction")}
           </span>
         ) : (
           outOfStock && (
-            <span className="absolute top-3 right-3 px-2.5 py-1 text-[0.55rem] font-mono tracking-[0.15em] uppercase text-white bg-charcoal-800/80 backdrop-blur">
+            <span className="absolute top-3 right-3 px-2.5 py-1 text-[0.65rem] font-mono tracking-[0.15em] uppercase text-white bg-charcoal-800/80 backdrop-blur">
               {t("outOfStock")}
             </span>
           )
         )}
+
+        {/* Live countdown for auctions with a closing time — ticks every second */}
+        {mounted && product.auction && product.endsAt && <EndsInChip endsAt={product.endsAt} />}
       </div>
 
       {/* Content */}
       <div className="p-5">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-gold-400/70">
+          <span className="font-mono text-[0.65rem] tracking-[0.2em] uppercase text-gold-600 dark:text-gold-400">
             {product.category}
           </span>
           {product.reviewCount ? (
             <span
-              className="inline-flex items-center gap-1 text-[0.6rem] font-mono tracking-wider text-charcoal-500 dark:text-white/40"
+              className="inline-flex items-center gap-1 text-[0.7rem] font-mono tracking-wider text-charcoal-500 dark:text-white/45"
               title={`${product.avgRating} / 5`}
             >
-              <Star size={10} className="fill-gold-400 text-gold-400" />
+              <Star size={11} className="fill-gold-400 text-gold-400" />
               {product.avgRating} ({product.reviewCount})
             </span>
           ) : null}
@@ -107,14 +160,14 @@ export default function ProductCard({ product, index }: { product: ShopProduct; 
         <div className="mt-4 flex items-center justify-between gap-3">
           {product.auction ? (
             <div className="min-w-0">
-              <span className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30">
+              <span className="font-mono text-[0.65rem] tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/35">
                 {t("currentBid")}
               </span>
               <span className="block font-heading text-lg font-semibold text-gold-600 dark:text-gold-400">
                 {formatNPR(product.currentBid ?? product.startingBid ?? 0, locale)}
               </span>
-              <span className="flex items-center gap-1 text-[0.6rem] font-mono tracking-wider uppercase text-charcoal-500 dark:text-white/30">
-                <Timer size={10} /> {product.bidCount ?? 0} {t("bids")}
+              <span className="flex items-center gap-1 text-[0.7rem] font-mono tracking-wider uppercase text-charcoal-500 dark:text-white/35">
+                <Timer size={11} /> {product.bidCount ?? 0} {t("bids")}
               </span>
             </div>
           ) : (
@@ -123,7 +176,7 @@ export default function ProductCard({ product, index }: { product: ShopProduct; 
                 {formatNPR(product.price, locale)}
               </span>
               {!outOfStock && product.stock <= 3 && (
-                <span className="text-[0.6rem] font-mono tracking-wider uppercase text-charcoal-500 dark:text-white/30">
+                <span className="text-[0.7rem] font-mono tracking-wider uppercase text-charcoal-500 dark:text-white/35">
                   {t("lowStock", { n: product.stock })}
                 </span>
               )}
@@ -165,3 +218,5 @@ export default function ProductCard({ product, index }: { product: ShopProduct; 
     </motion.div>
   );
 }
+
+export default memo(ProductCard);

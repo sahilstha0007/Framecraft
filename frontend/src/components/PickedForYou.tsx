@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import ProductCard, { type ShopProduct } from "./ProductCard";
 import { api } from "@/lib/api";
 import { useBrowsingHistory } from "@/lib/useBrowsingHistory";
-import ScrollReveal from "./ScrollReveal";
+import { useHydrated } from "@/lib/useHydrated";
+import ScrollReveal, { ParallaxLayer } from "./ScrollReveal";
 
 interface RecommendedItem extends ShopProduct {
   reason: { id: number; name: string } | null;
@@ -27,8 +28,7 @@ export default function PickedForYou() {
   // localStorage is only readable on the client, so defer rendering until
   // after mount — otherwise SSR output (no section) and hydration (section
   // present) would mismatch.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const basedOn = useMemo(
     () => history.slice(0, 6).map((h) => h.id).join(","),
@@ -36,10 +36,7 @@ export default function PickedForYou() {
   );
 
   useEffect(() => {
-    if (!basedOn) {
-      setItems([]);
-      return;
-    }
+    if (!basedOn) return;
     let alive = true;
     api
       .get<{ items: RecommendedItem[] }>(
@@ -59,19 +56,12 @@ export default function PickedForYou() {
   if (!mounted || !history.length || !items || items.length === 0) return null;
 
   return (
-    <section className="py-24 bg-cream-50 dark:bg-black">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 bg-cream-50 dark:bg-[#0a0a08] relative overflow-hidden">
+      <div className="relative max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
         <ScrollReveal>
           <div className="flex flex-wrap items-end justify-between gap-6 mb-12">
             <div>
-              <div className="flex items-center gap-3">
-                <Sparkles size={14} className="text-gold-400/80" aria-hidden="true" />
-                <span className="font-mono text-[0.6rem] tracking-[0.2em] uppercase text-gold-400/70">
-                  {t("recEyebrow")}
-                </span>
-                <span className="h-px w-8 bg-gold-400/30" aria-hidden="true" />
-              </div>
-              <h2 className="mt-2 text-3xl sm:text-4xl font-heading font-bold text-charcoal-900 dark:text-white">
+              <h2 className="text-3xl sm:text-4xl font-heading font-bold text-charcoal-900 dark:text-white">
                 {t("recTitle")}
               </h2>
               <p className="mt-3 text-sm text-charcoal-600 dark:text-white/45 max-w-md">
@@ -80,9 +70,9 @@ export default function PickedForYou() {
             </div>
             <button
               onClick={clear}
-              className="inline-flex items-center gap-1.5 text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/30 hover:text-gold-600 dark:hover:text-gold-400 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-[0.7rem] font-mono tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/35 hover:text-gold-600 dark:hover:text-gold-400 transition-colors cursor-pointer"
             >
-              <X size={12} /> {t("clearHistory")}
+              <X size={13} /> {t("clearHistory")}
             </button>
           </div>
         </ScrollReveal>
@@ -96,16 +86,19 @@ export default function PickedForYou() {
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: (i % 4) * 0.08 }}
             >
-              <ProductCard product={item} index={i} />
-              {item.reason && (
-                <p className="mt-3 px-1 text-[0.6rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 dark:text-white/30 leading-relaxed">
-                  {t("becauseViewed", {
-                    name: item.reason.name.length > 34
-                      ? `${item.reason.name.slice(0, 34)}…`
-                      : item.reason.name,
-                  })}
-                </p>
-              )}
+              {/* Card and its "because you viewed" note drift as one unit */}
+              <ParallaxLayer speed={[0.15, 0.3, 0.3, 0.15][i % 4]}>
+                <ProductCard product={item} index={i} />
+                {item.reason && (
+                  <p className="mt-3 px-1 text-[0.7rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 dark:text-white/35 leading-relaxed">
+                    {t("becauseViewed", {
+                      name: item.reason.name.length > 34
+                        ? `${item.reason.name.slice(0, 34)}…`
+                        : item.reason.name,
+                    })}
+                  </p>
+                )}
+              </ParallaxLayer>
             </motion.div>
           ))}
         </div>

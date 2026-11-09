@@ -15,8 +15,6 @@ interface UserRow {
   email: string;
   role: string;
   created_at: string;
-  booking_count: number;
-  quote_count: number;
 }
 
 function toUser(r: UserRow) {
@@ -26,8 +24,6 @@ function toUser(r: UserRow) {
     email: r.email,
     role: r.role,
     createdAt: r.created_at,
-    bookings: Number(r.booking_count),
-    quotes: Number(r.quote_count),
   };
 }
 
@@ -41,11 +37,9 @@ export const usersRoutes = new Elysia()
   .onBeforeHandle(requireAdmin)
   .get("/api/users", async () => {
     const rows = await all<UserRow>(
-      `SELECT u.id, u.name, u.email, u.role, u.created_at,
-              (SELECT COUNT(*) FROM bookings b WHERE b.user_id = u.id)      AS booking_count,
-              (SELECT COUNT(*) FROM custom_quotes q WHERE q.user_id = u.id) AS quote_count
-       FROM users u
-       ORDER BY u.created_at DESC`
+      `SELECT id, name, email, role, created_at
+       FROM users
+       ORDER BY created_at DESC`
     );
     return rows.map(toUser);
   })
@@ -84,10 +78,7 @@ export const usersRoutes = new Elysia()
         set.status = 404;
         return { error: "User not found" };
       }
-      // Detach their requests rather than deleting the history.
-      await all("UPDATE bookings SET user_id = NULL WHERE user_id = $1", [params.id]);
-      await all("UPDATE custom_quotes SET user_id = NULL WHERE user_id = $1", [params.id]);
-      // Products they listed become studio stock rather than disappearing;
+      // Products they listed become marketplace stock rather than disappearing;
       // their posts, bids, likes, follows and comments cascade away.
       await all("UPDATE products SET seller_id = NULL WHERE seller_id = $1", [params.id]);
       await all("UPDATE products SET winner_id = NULL WHERE winner_id = $1", [params.id]);

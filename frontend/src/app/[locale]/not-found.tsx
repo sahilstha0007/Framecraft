@@ -40,7 +40,7 @@ export default function NotFound() {
           <FrameCorner size={22} position="bottom-right" className="absolute -bottom-6 -right-6 text-gold-400/60" />
 
           <div className="relative px-12 py-10 sm:px-16 sm:py-12">
-            <span className="font-mono text-[0.6rem] tracking-[0.4em] uppercase text-gold-400/60">
+            <span className="font-mono text-[0.7rem] tracking-[0.4em] uppercase text-gold-400/60">
               {t("eyebrow")}
             </span>
             <div className="mt-4 font-heading text-7xl sm:text-8xl font-bold text-charcoal-900 dark:text-white leading-none">
@@ -61,10 +61,10 @@ export default function NotFound() {
             <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
           <Link
-            href="/frames"
+            href="/shop"
             className="inline-flex items-center gap-2 px-8 py-4 border border-charcoal-300 text-charcoal-900 dark:border-white/20 dark:text-white text-sm font-medium tracking-wider uppercase rounded-full hover:bg-charcoal-900/10 dark:hover:bg-white/10 transition-colors duration-300"
           >
-            {t("browseFrames")}
+            {t("browseShop")}
           </Link>
         </div>
       </div>

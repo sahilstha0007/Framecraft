@@ -128,7 +128,7 @@ export default function CartDrawer() {
             {items.length > 0 && (
               <div className="px-6 py-5 border-t border-charcoal-200/60 dark:border-white/[0.08]">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-mono text-[0.6rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/40">
+                  <span className="font-mono text-[0.7rem] tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/40">
                     {t("subtotal")}
                   </span>
                   <span className="font-heading text-lg font-semibold text-charcoal-900 dark:text-white">

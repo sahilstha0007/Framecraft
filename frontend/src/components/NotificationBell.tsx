@@ -54,6 +54,7 @@ export default function NotificationBell() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount: setState happens in async response callbacks
     load();
     const id = window.setInterval(load, 30_000);
     return () => window.clearInterval(id);
@@ -113,13 +114,13 @@ export default function NotificationBell() {
             className="absolute right-0 mt-2 w-80 sm:w-96 glass-nav rounded-2xl overflow-hidden shadow-xl shadow-black/10 z-50"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <p className="text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/50">
+              <p className="text-[0.7rem] font-mono tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/50">
                 {t("notifications")}
               </p>
               {unread > 0 && (
                 <button
                   onClick={markAll}
-                  className="inline-flex items-center gap-1.5 text-[0.6rem] font-mono tracking-wider uppercase text-gold-600 dark:text-gold-400 hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-[0.7rem] font-mono tracking-wider uppercase text-gold-600 dark:text-gold-400 hover:underline cursor-pointer"
                 >
                   <CheckCheck size={12} /> {t("markAllRead")}
                 </button>

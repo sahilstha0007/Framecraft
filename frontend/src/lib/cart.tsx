@@ -47,6 +47,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time localStorage hydration on mount (external store read)
       if (raw) setItems(JSON.parse(raw) as CartItem[]);
     } catch {
       /* corrupt cart — start fresh */

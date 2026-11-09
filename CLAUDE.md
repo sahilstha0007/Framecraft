@@ -1,10 +1,10 @@
 
-# FrameCraft — Project Structure
+# Kala Bazaar (formerly FrameCraft) — Project Structure
 
-Monorepo with two independent workspaces:
+Nepali art marketplace & social platform. Monorepo with two independent workspaces:
 
-- `frontend/` — **Next.js 16** app (App Router, React 19, Tailwind v4, Three.js). Scripts: `bun run dev` (`next dev`, port 3000), `bun run build`, `bun run lint`, `bun run typecheck`.
-- `backend/` — **Elysia** REST API on Bun with `bun:sqlite`. Scripts: `bun run dev` (port 3001), `bun run test` (`bun test`), `bun run seed`, `bun run typecheck`.
+- `frontend/` — **Next.js 16** app (App Router, React 19, Tailwind v4). Scripts: `bun run dev` (`next dev`, port 3000), `bun run build`, `bun run lint`, `bun run typecheck`. Marketplace-only UI; demo product images live in `frontend/public/art/`.
+- `backend/` — **Elysia** REST API on Bun with **PostgreSQL via built-in `Bun.sql`** (`backend/src/db.ts`). Scripts: `bun run dev` (port 3001), `bun run test` (integration tests against scratch DB `kalabazaar_test`; needs local PostgreSQL `framecraft`/`framecraft`), `bun run seed`, `bun run typecheck`.
 
 The generic "Bun HTML imports" frontend notes below describe a different, older setup (Bun.serve serving HTML). They do **not** apply to the Next.js app in `frontend/`.
 
@@ -23,7 +23,7 @@ Default to using Bun instead of Node.js.
 ## APIs
 
 - `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
+- The API uses PostgreSQL through built-in `Bun.sql` (see `backend/src/db.ts`). Don't use `pg`, `postgres.js` or `bun:sqlite` here.
 - `Bun.redis` for Redis. Don't use `ioredis`.
 - `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
 - `WebSocket` is built-in. Don't use `ws`.

@@ -1,12 +1,12 @@
-# FrameCraft
+# Kala Bazaar — कला बजार
 
-Premium Custom Framing Studio — and a marketplace & social platform for art. A monorepo with a **Next.js frontend** and an **Elysia (Bun) REST API backend**.
+Nepal's online **art marketplace & social platform**: buy, bid and follow Nepali artists. A monorepo with a **Next.js frontend** and an **Elysia (Bun) REST API backend** on **PostgreSQL** (via built-in `Bun.sql`).
 
 ## Structure
 
 ```
 framecraft/
-├── frontend/            Next.js 16 app — App Router, React 19, Tailwind v4, Three.js
+├── frontend/            Next.js 16 app — App Router, React 19, Tailwind v4
 ├── backend/             Elysia REST API on Bun — PostgreSQL (Bun.sql)
 ├── podman-compose.yaml  Full stack (postgres + backend + frontend) via Podman
 ├── backend/Containerfile
@@ -15,34 +15,45 @@ framecraft/
 
 ## What it is
 
-FrameCraft is three products in one:
+Two products in one:
 
-- **Framing studio** — the original business: custom frame builder with live pricing, appointments, gallery, services, testimonials and contact.
-- **Art marketplace** — customers browse and search products, buy via cart + checkout with Nepali payment gateways (eSewa & Khalti, sandbox-first), and **bid in auctions** on one-of-a-kind pieces.
-- **Social platform** — every seller has a public profile and shop, can publish **stories/blog posts**, and customers can **follow sellers, like products and comment** on pieces and posts.
+- **Art marketplace** — browse/search products by category, cart checkout with Nepali payment rails (**eSewa, Khalti**, Fonepay / bank / COD), and **live auctions** with min-increment bidding, countdowns and automatic winner selection.
+- **Social platform** — public seller profiles & shops, seller **stories/blog**, follow / like / comment / star-reviews with seller replies, a trending ranker driven by real views/bids/reviews, and an in-app notification center.
 
 ### Roles
 
 | Role | What they can do |
 | ---- | ---------------- |
-| **customer** | Browse & search the shop, buy, bid in auctions, follow/like/comment, manage their account (orders, bids, saved, settings) |
+| **customer** | Browse & search the shop, buy, bid in auctions, follow/like/comment/review, manage account (orders, bids, saved, settings) |
 | **seller** | Everything a customer can, plus a seller dashboard: list products (fixed-price or auctions), write stories, manage their own orders |
-| **admin** | The studio owner: full admin console — users (3 roles), products, orders, bookings, quotes, gallery/frames/services content, shop settings |
+| **admin** | The owner console: analytics, orders, users (3 roles), product management, shop settings |
 
-Registration is open self-signup with a buyer/seller choice; the studio owner is the seeded `admin` account.
+Registration is open self-signup with a buyer/seller choice. Rate limiting protects auth, payment and order routes (10–20 req/min/IP).
 
 ## Quick start
+
+Requirements: [Bun](https://bun.com) ≥ 1.3, PostgreSQL ≥ 14 (local or via Podman).
 
 ### Backend (port 3001)
 
 ```bash
 cd backend
 bun install
-cp .env.example .env   # optional
-bun run dev            # starts the API
+cp .env.example .env        # DATABASE_URL, FRONTEND_ORIGIN, ADMIN_KEY…
+bun run dev                 # auto-migrates + seeds on first start
 ```
 
-The API auto-migrates and seeds the catalog (plus a demo seller, auctions and stories) on first start. See `backend/README.md` for the full endpoint list.
+Environment variables (see `.env.example`):
+
+| Var | Purpose |
+| --- | ------- |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `FRONTEND_ORIGIN` | Comma-separated CORS allowlist, e.g. `http://localhost:3000,http://localhost:3100` |
+| `ADMIN_KEY` | Required in production; guards `POST /api/auth/bootstrap-seller` |
+| `SELLER_EMAIL` / `SELLER_PASSWORD` | Optional: provisions the first seller at boot |
+| `KHALTI_SECRET_KEY`, `ESEWA_SECRET_KEY`, `ESEWA_PRODUCT_CODE` | Payment gateways (sandbox defaults work in dev) |
+
+Production boots fail fast when `ADMIN_KEY` or `FRONTEND_ORIGIN` are missing.
 
 ### Frontend (port 3000)
 
@@ -52,29 +63,34 @@ bun install
 bun run dev            # Next.js dev server
 ```
 
+Demo data seeds one seller shop (`anita@paubhastudio.com.np` / `demo123456`), 13 products including three live auctions, and two blog stories. Images are self-hosted from `frontend/public/art/`.
+
+## Tests
+
+```bash
+cd backend
+bun run test           # spins up the API against scratch DB kalabazaar_test
+                       # covers auth, orders, bids, payments verify, rate limits
+```
+
+Requires a local PostgreSQL reachable with `framecraft/framecraft` (the suite recreates `kalabazaar_test` on every run).
+
 ## Key pages
 
 | Path | Purpose |
 | ---- | ------- |
-| `/shop` | Marketplace — filter by category or **Auctions**, search products |
-| `/products/[id]` | Product detail — fixed-price buy, or the live auction UI (bid history, countdown, min. increment), likes & comments, seller card with follow |
-| `/checkout` | Login-gated checkout — eSewa / Khalti redirect or offline methods |
-| `/sellers` · `/sellers/[id]` | Seller directory & public profile (shop, stories, followers) |
+| `/shop` | Marketplace — category chips, search, **Auction-only toggle**, sort/filters (URL-synced) |
+| `/products/[id]` | Product detail — fixed-price buy or live auction UI (bid history, countdown, min increment), likes, comments, reviews, seller follow |
+| `/checkout` | Login-gated — eSewa/Khalti redirect or offline methods, gateway return handling |
+| `/sellers` · `/sellers/[id]` | Artist directory & public profile (shop, stories, followers) |
 | `/blog` · `/blog/[slug]` | Seller stories with comments |
-| `/account` | Customer hub — Orders, My bids, Saved, Settings (profile + password + become a seller) |
-| `/dashboard` | Seller console — products, stories, orders |
-| `/admin` | Studio admin console — users, products, orders, bookings, quotes, content, settings |
+| `/account` | Orders (with guest order tracking), my bids, saved, settings |
+| `/dashboard` | Seller console — listings, stories, orders |
+| `/admin` | Owner console — analytics, orders, users, settings |
 
-Both **English** (default) and **Nepali** are supported, with Bikram Sambat dates and Devanagari numerals in the Nepali locale.
-
-## Requirements
-
-- [Bun](https://bun.com) ≥ 1.3 (Node is used under the hood by Next.js)
-- [Podman](https://podman.io) ≥ 4 + `podman-compose` (or Docker) for the containerized stack
+Both **English** (default) and **नेपाली** are supported, with Bikram Sambat dates and Devanagari numerals in the Nepali locale.
 
 ## Full stack with Podman
-
-Everything — **PostgreSQL, backend, frontend** — runs from one compose file:
 
 ```bash
 cp .env.example .env            # optional — sensible defaults are baked in
@@ -82,19 +98,11 @@ podman-compose -f podman-compose.yaml up --build -d
 podman-compose -f podman-compose.yaml ps
 ```
 
-| Service   | URL                 | Notes                                        |
-| --------- | ------------------- | -------------------------------------------- |
-| frontend  | http://localhost:3000 | Next.js standalone server (non-root)       |
-| backend   | http://localhost:3001 | Elysia API, auto-migrates + seeds on boot  |
-| postgres  | localhost:5432      | `framecraft`/`framecraft`, named volume `pgdata` |
-
-Healthchecks gate startup order (postgres → backend → frontend). The API waits for PostgreSQL before migrating, so a cold start is safe. Useful commands:
+Healthchecks gate startup order (postgres → backend → frontend). Useful commands:
 
 ```bash
 podman-compose -f podman-compose.yaml logs -f backend   # watch the API boot
 podman-compose -f podman-compose.yaml exec backend bun run seed   # reseed demo content
-podman-compose -f podman-compose.yaml down              # stop (data persists in pgdata)
+podman-compose -f podman-compose.yaml down              # stop (data persists)
 podman-compose -f podman-compose.yaml down -v           # stop + wipe the database
 ```
-
-For local development without containers, follow the per-workspace quick start above (backend needs a running PostgreSQL on `localhost:5432`).

@@ -67,7 +67,7 @@ export default function PageHeader({
         style={{ backgroundImage: NOISE_BG }}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -80,7 +80,7 @@ export default function PageHeader({
               className="w-10 h-px bg-gradient-to-r from-transparent to-gold-400/50"
               aria-hidden="true"
             />
-            <span className="font-mono text-[0.6rem] tracking-[0.3em] uppercase text-gold-400/70">
+            <span className="font-mono text-[0.7rem] tracking-[0.3em] uppercase text-gold-600 dark:text-gold-400">
               {eyebrow}
             </span>
             <span

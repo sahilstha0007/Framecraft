@@ -123,7 +123,7 @@ export default function SellerAnalytics() {
         {stats.map((st) => (
           <div key={st.label} className="border border-charcoal-700/70 bg-charcoal-900/50 p-5">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60">
+              <span className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60">
                 {st.label}
               </span>
               <st.icon size={14} className="text-gold-400/70" />
@@ -137,7 +137,7 @@ export default function SellerAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="border border-charcoal-700/70 bg-charcoal-900/50 p-5">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60">
+            <span className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60">
               {t("statRating")}
             </span>
             <Star size={14} className="text-gold-400/70" />
@@ -151,7 +151,7 @@ export default function SellerAnalytics() {
         </div>
         <div className="border border-charcoal-700/70 bg-charcoal-900/50 p-5">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60">
+            <span className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60">
               {t("statActiveProducts")}
             </span>
             <Boxes size={14} className="text-gold-400/70" />
@@ -163,7 +163,7 @@ export default function SellerAnalytics() {
         {/* 14-day trend */}
         <div className="border border-charcoal-700/70 bg-charcoal-900/50 p-5">
           <div className="flex items-center justify-between mb-4">
-            <span className="inline-flex items-center gap-1.5 font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60">
+            <span className="inline-flex items-center gap-1.5 font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60">
               <TrendingUp size={13} className="text-gold-400/70" /> {t("statTrend")}
             </span>
             <div className="flex gap-1">
@@ -184,7 +184,7 @@ export default function SellerAnalytics() {
             data={trend === "views" ? viewsSeries : salesSeries}
             color={trend === "views" ? "rgba(212,168,56,0.75)" : "rgba(110,231,183,0.7)"}
           />
-          <div className="mt-2 flex justify-between font-mono text-[0.5rem] tracking-wider uppercase text-cream-500/40">
+          <div className="mt-2 flex justify-between font-mono text-[0.65rem] tracking-wider uppercase text-cream-500/40">
             <span>{viewsSeries[0]?.day.slice(5) ?? ""}</span>
             <span>{viewsSeries[viewsSeries.length - 1]?.day.slice(5) ?? ""}</span>
           </div>
@@ -193,7 +193,7 @@ export default function SellerAnalytics() {
 
       {/* Top products */}
       <div>
-        <h3 className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60 mb-4">
+        <h3 className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60 mb-4">
           {t("topProducts")}
         </h3>
         <div className="border border-charcoal-700/70 divide-y divide-charcoal-800">
@@ -202,7 +202,7 @@ export default function SellerAnalytics() {
           )}
           {data.topProducts.map((p, i) => (
             <div key={p.id} className="flex items-center gap-4 p-4 hover:bg-charcoal-900/40 transition-colors">
-              <span className="font-mono text-[0.55rem] tracking-widest text-gold-400/60 w-7">
+              <span className="font-mono text-[0.7rem] tracking-widest text-gold-400/60 w-7">
                 No.{String(i + 1).padStart(2, "0")}
               </span>
               <div className="relative w-12 h-12 flex-shrink-0 overflow-hidden bg-charcoal-800">
@@ -210,7 +210,7 @@ export default function SellerAnalytics() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm text-cream-100 truncate">{p.name}</div>
-                <div className="mt-0.5 flex items-center gap-3 font-mono text-[0.55rem] tracking-wider uppercase text-cream-500/50">
+                <div className="mt-0.5 flex items-center gap-3 font-mono text-[0.7rem] tracking-wider uppercase text-cream-500/50">
                   <span className="inline-flex items-center gap-1">
                     <Eye size={10} /> {p.views}
                   </span>
@@ -228,7 +228,7 @@ export default function SellerAnalytics() {
                 <div className="font-heading text-sm font-semibold text-gold-400">
                   {formatNPR(p.revenue, locale)}
                 </div>
-                <div className="font-mono text-[0.55rem] tracking-wider uppercase text-cream-500/50">
+                <div className="font-mono text-[0.7rem] tracking-wider uppercase text-cream-500/50">
                   {p.units} {p.units === 1 ? t("unit") : t("units")}
                 </div>
               </div>

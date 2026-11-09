@@ -141,7 +141,7 @@ function CheckoutContent() {
             </>
           }
           description={t("description")}
-          image="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1920&q=85"
+          image="/art/brocade.jpg"
         />
         <section className="py-20 bg-cream-50 dark:bg-[#0a0a08]">
           <div className="max-w-md mx-auto px-4">
@@ -204,7 +204,7 @@ function CheckoutContent() {
             </>
           }
           description={placed ? t("successBody") : t("paidBody")}
-          image="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1920&q=85"
+          image="/art/brocade.jpg"
         />
         <section className="py-20 bg-cream-50 dark:bg-[#0a0a08]">
           <div className="max-w-lg mx-auto px-4">
@@ -219,7 +219,7 @@ function CheckoutContent() {
                 aria-hidden="true"
               />
               <CheckCircle2 size={36} className="mx-auto text-emerald-500" />
-              <div className="mt-5 font-mono text-[0.55rem] tracking-[0.25em] uppercase text-charcoal-400 dark:text-white/30">
+              <div className="mt-5 font-mono text-[0.7rem] tracking-[0.25em] uppercase text-charcoal-400 dark:text-white/30">
                 {t("orderId")}
               </div>
               <div className="mt-1 font-heading text-3xl font-semibold text-charcoal-900 dark:text-white">
@@ -279,7 +279,7 @@ function CheckoutContent() {
             </>
           }
           description={t("description")}
-          image="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1920&q=85"
+          image="/art/brocade.jpg"
         />
         <section className="py-20 bg-cream-50 dark:bg-[#0a0a08]">
           <div className="max-w-md mx-auto px-4 text-center">
@@ -308,11 +308,11 @@ function CheckoutContent() {
             </>
           }
           description={t("description")}
-          image="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1920&q=85"
+          image="/art/brocade.jpg"
         />
         <section className="py-20 bg-cream-50 dark:bg-[#0a0a08]">
           <div className="max-w-md mx-auto px-4 text-center">
-            <div className="font-mono text-[0.6rem] tracking-[0.3em] uppercase text-charcoal-400 dark:text-white/25">
+            <div className="font-mono text-[0.7rem] tracking-[0.3em] uppercase text-charcoal-400 dark:text-white/25">
               {t("empty")}
             </div>
             <Link
@@ -337,7 +337,7 @@ function CheckoutContent() {
           </>
         }
         description={t("description")}
-        image="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1920&q=85"
+        image="/art/brocade.jpg"
       />
 
       <section className="py-14 sm:py-20 bg-cream-50 dark:bg-[#0a0a08]">

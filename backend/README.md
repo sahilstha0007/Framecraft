@@ -1,16 +1,16 @@
-# FrameCraft API
+# Kala Bazaar API
 
-REST API for the FrameCraft studio + art marketplace, built with **[Elysia](https://elysiajs.com)** on **Bun**, persisted with SQLite via `bun:sqlite`.
+REST API for the Kala Bazaar art marketplace, built with **[Elysia](https://elysiajs.com)** on **Bun**, persisted with **PostgreSQL** via built-in `Bun.sql`.
 
 ## Run
 
 ```bash
 bun install
-cp .env.example .env   # optional — sensible dev defaults
+cp .env.example .env   # DATABASE_URL, FRONTEND_ORIGIN, ADMIN_KEY…
 bun run dev            # http://localhost:3001
 ```
 
-On first start the database is migrated and seeded: the studio catalog (frames, gallery, services, testimonials, team, glass & mat options), the shop catalog, and a **demo seller** with auction items and stories.
+On first start the database is migrated and seeded: the shop catalog (13 products incl. three live auctions) and a **demo seller** (`anita@paubhastudio.com.np` / `demo123456`) with two blog stories. Legacy studio tables (frames, gallery, bookings, quotes, …) are dropped automatically on boot.
 
 ## Scripts
 
@@ -19,92 +19,82 @@ On first start the database is migrated and seeded: the studio catalog (frames, 
 | `bun run dev`       | Start with hot reload             |
 | `bun run start`     | Start without reload              |
 | `bun run seed`      | Re-seed catalog + demo content    |
-| `bun test`          | Run integration tests (58)        |
+| `bun run test`      | Integration tests — boots the real server against scratch DB `kalabazaar_test`; covers auth, orders, bids, payments verify, rate limiting (needs local PostgreSQL `framecraft`/`framecraft`) |
 | `bun run typecheck` | TypeScript check (`tsc --noEmit`) |
-
-> **Note:** `bun test` drops and recreates all tables in the dev database before running — point `DATABASE_URL` at a scratch database if you have data you care about.
 
 ## Configuration
 
 | Env var           | Default                                  | Description                              |
 | ----------------- | ---------------------------------------- | ---------------------------------------- |
 | `PORT`            | `3001`                                   | API port                                 |
-| `FRONTEND_ORIGIN` | `http://localhost:3000`                  | Allowed CORS origin                      |
-| `DATABASE_URL`    | `file:./framecraft.db`                   | SQLite file (bun:sqlite)                 |
+| `FRONTEND_ORIGIN` | `http://localhost:3000`                  | Comma-separated CORS allowlist; required in production |
+| `DATABASE_URL`    | `postgres://framecraft:framecraft@localhost:5432/framecraft` | PostgreSQL connection string |
+| `ADMIN_KEY`       | `dev-admin-key`                          | Guards seller bootstrap; **required in production** |
+| `SELLER_EMAIL` / `SELLER_PASSWORD` | —                       | Provisions the first seller account at boot |
 | `KHALTI_SECRET_KEY` | —                                      | Khalti gateway secret (sandbox: `dev.khalti.com`) |
-| `ESEWA_MERCHANT_ID` | `EPAYTEST`                            | eSewa merchant id (sandbox default)      |
-| `ESEWA_SECRET_KEY` | —                                       | eSewa HMAC secret key                    |
+| `ESEWA_PRODUCT_CODE` | `EPAYTEST`                           | eSewa merchant code (sandbox default)    |
+| `ESEWA_SECRET_KEY` | sandbox test key                        | eSewa HMAC secret key                    |
+
+Production (`NODE_ENV=production`) refuses to boot without `ADMIN_KEY` + `FRONTEND_ORIGIN`.
 
 ## Auth & roles
 
 Session auth via httpOnly cookie (`fc_session`). Three roles:
 
-- `customer` — browse, buy, bid, follow, like, comment
+- `customer` — browse, buy, bid, follow, like, comment, review
 - `seller` — everything above + own shop (products, stories, orders)
-- `admin` — the studio owner's full console
+- `admin` — the owner console
 
-Registration is open self-signup (`role: "customer" | "seller"`); the seeded admin account is the studio owner.
+Registration is open self-signup (`role: "customer" | "seller"`).
 
 ## Endpoints
 
+Full machine-readable index: `GET /api`. Highlights:
+
 ### System
-- `GET /api` — endpoint index
-- `GET /api/health` — health check
+- `GET /api` · `GET /api/health`
 
 ### Auth & account
 - `POST /api/auth/register` — sign up (`name`, `email`, `password`, optional `role`, `shopName`, `bio`)
-- `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me`
-- `PUT /api/me/profile` — name, bio, avatar, shopName, location, website
-- `PUT /api/me/password` — change password (needs current password)
-- `GET /api/me/bids` — my bids (with winning status)
-- `GET /api/me/likes` — my saved products
+- `POST /api/auth/login` · `POST /api/auth/logout` (deletes the session server-side) · `GET /api/auth/me`
+- `PUT /api/me/profile` · `PUT /api/me/password`
+- `GET /api/me/bids` · `GET /api/me/likes` · `GET /api/me/notifications`
 
-### Studio catalog (read-only, seeded)
-- `GET /api/frames`, `/api/gallery`, `/api/services`, `/api/testimonials`, `/api/team`
-- `GET /api/options/glass-types`, `/api/options/mat-options`
-- `GET /api/frames/:id`, `/api/gallery/:id`, `/api/services/:id`
-
-### Quote calculator
-- `POST /api/quote` — compute a custom-frame price (frame + mat + glass × size factor × qty), optionally persisted
-- `GET /api/quotes/:id` — fetch a persisted quote
-
-### Shop
-- `GET /api/products` — all products (auction-aware, `?category=`, `?search=`, `?auction=1`); lazy-closes expired auctions
-- `GET /api/products/:id` — single product with seller info, current bid & bid count
-- `POST /api/orders` — place an order (auth required). Server-side pricing, **atomic stock guard** (`UPDATE … WHERE stock >= qty` in a transaction) — overselling is impossible
-- `GET /api/my/orders` — the signed-in customer's orders
-
-### Auctions & bids
-- `POST /api/products/:id/bid` — place a bid (auth, transactional; enforces min. increment, can't outbid yourself)
-- `GET /api/products/:id/bids` — bid history
-- `GET /api/products/:id/engagement` — like count + liked-by-me
+### Shop & auctions
+- `GET /api/products` — auction-aware (`?category=`, `?search=`, `?auction=1`); lazy-closes expired auctions
+- `GET /api/products/:id` — with seller info, current bid & bid count
+- `POST /api/products/:id/bid` — transactional; enforces min. increment, no self-outbidding
+- `GET /api/products/:id/bids` · `GET /api/products/:id/engagement`
+- `POST /api/orders` — server-side pricing, **atomic stock guard** (`UPDATE … WHERE stock >= qty`)
+- `GET /api/my/orders` · `GET /api/orders/:id/events` (guest order tracking)
 
 ### Social
-- `POST` / `DELETE /api/products/:id/like` — like / unlike
-- `POST` / `DELETE /api/sellers/:id/follow` — follow / unfollow
-- `GET /api/sellers` — seller directory (`?search=`)
-- `GET /api/sellers/:id` — public profile (followers, products, posts)
-- `GET/POST /api/comments` — comments on products or posts (`targetType`, `targetId`); `DELETE /api/comments/:id`
-- `GET /api/posts` · `GET /api/posts/:slug` — public stories feed + single post
+- `POST`/`DELETE /api/products/:id/like` · `POST`/`DELETE /api/sellers/:id/follow`
+- `GET /api/sellers` · `GET /api/sellers/:id`
+- `GET/POST /api/comments` (`targetType`: product \| post)
+- `GET /api/posts` · `GET /api/posts/:slug`
+- `GET/POST /api/products/:id/reviews` · `PUT /api/reviews/:id/reply` (seller only)
 
 ### Seller shop (auth: seller)
-- `GET/POST /api/seller/products`, `PUT/DELETE /api/seller/products/:id` — own products (auction fields)
-- `POST /api/seller/products/:id/end` — end an auction early
-- `GET /api/seller/posts` — own posts including drafts
-- `POST/PUT/DELETE /api/posts` — publish / update / delete own posts
-- `GET /api/seller/orders` · `PATCH /api/seller/orders/:id` — own shop orders + status updates
+- `GET/POST/PUT/DELETE /api/seller/products(:id)` · `POST /api/seller/products/:id/end`
+- `GET /api/seller/posts` · `POST/PUT/DELETE /api/posts`
+- `GET /api/seller/orders` · `PATCH /api/seller/orders/:id`
+- `GET /api/seller/analytics`
 
 ### Payments (sandbox-first)
-- `POST /api/payments/checkout` — initiate Khalti (returns `payment_url`) or eSewa (returns form fields) for an order
-- `GET /api/payments/khalti/verify?pidx=&orderId=` — server-side Khalti lookup verify
-- `GET /api/payments/esewa/verify` — eSewa HMAC signature verify + success redirect
+- `POST /api/payments/checkout` — Khalti (`payment_url`) or eSewa (form fields)
+- `GET /api/payments/verify/khalti?pidx=` — server-side lookup verify
+- `GET /api/payments/verify/esewa?data=` — HMAC signature verify + redirect
 
-### Admin console (auth: admin)
-- `GET/PATCH/DELETE /api/users` — every account; promote/demote between customer → seller → admin (self-mutation refused)
-- `GET/PATCH /api/orders`, `GET/PATCH /api/bookings`, `GET/PATCH /api/quotes` — manage orders, bookings, quotes
-- `GET/PUT /api/settings` — studio contact settings
-- `POST/PUT/DELETE /api/products` — the studio's own shop catalog (with auction fields)
-- `POST/PUT/DELETE /api/{gallery,frames,services,testimonials,team,glass-types,mat-options}` — content management
+### Admin (auth: admin)
+- `GET /api/admin/analytics` — revenue, orders, users, trending, category breakdown
+- `GET/PATCH/DELETE /api/users(:id)` — roles & removal (self-mutation refused)
+- `GET/PATCH /api/orders(:id)` · `GET/PUT /api/settings`
+- `POST/PUT/DELETE /api/products(:id)` — marketplace catalog CRUD
+
+## Rate limits
+
+Fixed-window per IP: `POST /api/auth/login` 10/min · `/api/auth/register`, `/api/payments/*`, `POST /api/orders` 20/min → `429` beyond that.
 
 ## Example
 

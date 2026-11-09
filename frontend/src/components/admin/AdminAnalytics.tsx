@@ -121,7 +121,7 @@ export default function AdminAnalytics() {
         {cards.map((c) => (
           <div key={c.label} className="border border-charcoal-700/70 bg-charcoal-900/50 p-4">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[0.5rem] tracking-[0.2em] uppercase text-cream-500/60">
+              <span className="font-mono text-[0.65rem] tracking-[0.2em] uppercase text-cream-500/60">
                 {c.label}
               </span>
               <c.icon size={13} className="text-gold-400/70" />
@@ -133,11 +133,11 @@ export default function AdminAnalytics() {
 
       {/* 30-day revenue */}
       <div className="border border-charcoal-700/70 bg-charcoal-900/50 p-5">
-        <div className="flex items-center gap-1.5 mb-4 font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60">
+        <div className="flex items-center gap-1.5 mb-4 font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60">
           <TrendingUp size={13} className="text-gold-400/70" /> {t("anRevenueTrend")}
         </div>
         <RevenueBars data={data.revenueByDay} locale={locale} />
-        <div className="mt-2 flex justify-between font-mono text-[0.5rem] tracking-wider uppercase text-cream-500/40">
+        <div className="mt-2 flex justify-between font-mono text-[0.65rem] tracking-wider uppercase text-cream-500/40">
           <span>{data.revenueByDay[0]?.day ?? ""}</span>
           <span>{data.revenueByDay[data.revenueByDay.length - 1]?.day ?? ""}</span>
         </div>
@@ -146,7 +146,7 @@ export default function AdminAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top sellers */}
         <div>
-          <h3 className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60 mb-3">
+          <h3 className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60 mb-3">
             {t("anTopSellers")}
           </h3>
           <div className="border border-charcoal-700/70 divide-y divide-charcoal-800">
@@ -155,7 +155,7 @@ export default function AdminAnalytics() {
             )}
             {data.topSellers.map((s, i) => (
               <div key={s.id} className="flex items-center gap-3 p-4">
-                <span className="font-mono text-[0.55rem] tracking-widest text-gold-400/60 w-7">
+                <span className="font-mono text-[0.7rem] tracking-widest text-gold-400/60 w-7">
                   No.{String(i + 1).padStart(2, "0")}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -174,7 +174,7 @@ export default function AdminAnalytics() {
 
         {/* Category breakdown */}
         <div>
-          <h3 className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60 mb-3">
+          <h3 className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60 mb-3">
             {t("anCategories")}
           </h3>
           <div className="border border-charcoal-700/70 divide-y divide-charcoal-800">
@@ -204,7 +204,7 @@ export default function AdminAnalytics() {
 
       {/* Order statuses */}
       <div>
-        <h3 className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-cream-500/60 mb-3">
+        <h3 className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-cream-500/60 mb-3">
           {t("anOrderStatuses")}
         </h3>
         {data.orderStatuses.length === 0 && (
@@ -216,7 +216,7 @@ export default function AdminAnalytics() {
           {data.orderStatuses.map((s) => (
             <div key={s.status} className="border border-charcoal-700/70 bg-charcoal-900/50 p-4">
               <div className="font-heading text-xl font-semibold text-cream-100">{s.count}</div>
-              <div className="mt-1 font-mono text-[0.5rem] tracking-[0.2em] uppercase text-cream-500/60 truncate">
+              <div className="mt-1 font-mono text-[0.65rem] tracking-[0.2em] uppercase text-cream-500/60 truncate">
                 {s.status}
               </div>
               <div className="mt-2 h-1 bg-charcoal-800 overflow-hidden">

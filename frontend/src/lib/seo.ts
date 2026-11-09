@@ -12,7 +12,7 @@ export const API_URL =
   process.env.API_INTERNAL_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
   "http://localhost:3001";
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://framecraft.com.np";
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kalabazaar.com.np";
 
 export interface SeoProduct {
   id: number;
@@ -157,18 +157,15 @@ export function sellerJsonLd(s: SeoSeller, locale: string): Record<string, unkno
 export const organizationJsonLd: Record<string, unknown> = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "FrameCraft",
+  name: "Kala Bazaar",
+  alternateName: "कला बजार",
   url: SITE_URL,
-  foundingDate: "1999",
+  description:
+    "Nepal's online marketplace for art — buy, sell and auction thangka, paubha, mithila and contemporary Nepali art.",
   address: {
     "@type": "PostalAddress",
-    addressLocality: "Patan",
+    addressLocality: "Kathmandu",
     addressRegion: "Bagmati",
     addressCountry: "NP",
-  },
-  contactPoint: {
-    "@type": "ContactPoint",
-    contactType: "customer service",
-    url: `${SITE_URL}/contact`,
   },
 };

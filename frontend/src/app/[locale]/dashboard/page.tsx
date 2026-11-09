@@ -32,7 +32,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0c0a08] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#0c0a08] flex items-center justify-center">
         <Loader2 size={22} className="animate-spin text-gold-400" />
       </div>
     );
@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0c0a08] flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] bg-[#0c0a08] flex items-center justify-center px-4">
         <div className="w-full max-w-sm border border-charcoal-700 bg-charcoal-900/70 p-8 text-center">
           <Store size={24} className="mx-auto text-gold-400" />
           <p className="mt-4 text-sm text-cream-200">{t("signInPrompt")}</p>
@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
   if (user.role === "customer") {
     return (
-      <div className="min-h-screen bg-[#0c0a08] flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] bg-[#0c0a08] flex items-center justify-center px-4">
         <div className="w-full max-w-sm border border-red-500/30 bg-charcoal-900/70 p-8 text-center">
           <AlertTriangle size={22} className="mx-auto text-red-400" />
           <p className="mt-4 text-sm text-cream-200">{t("notVendor")}</p>
@@ -91,7 +91,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0c0a08] text-cream-100">
+    <div className="min-h-[100dvh] bg-[#0c0a08] text-cream-100">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-charcoal-800 bg-charcoal-900/70 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -99,7 +99,7 @@ export default function DashboardPage() {
             <div className="font-heading text-xl text-cream-100">
               {t("brand")} <span className="text-gold-400">{t("brandSub")}</span>
             </div>
-            <div className="font-mono text-[0.55rem] tracking-[0.3em] uppercase text-cream-500/60 mt-0.5">
+            <div className="font-mono text-[0.7rem] tracking-[0.3em] uppercase text-cream-500/60 mt-0.5">
               {user.shopName || user.name}
             </div>
           </div>

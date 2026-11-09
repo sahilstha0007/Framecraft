@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { DriftWatermark } from "./ScrollReveal";
 
 export default function Newsletter() {
   const t = useTranslations("newsletter");
@@ -19,6 +20,8 @@ export default function Newsletter() {
 
   return (
     <section className="py-28 bg-walnut-100 dark:bg-charcoal-800 relative overflow-hidden">
+      {/* Parallel layer: faint word drifting behind the signup */}
+      <DriftWatermark text="THE LIST" speed={0.3} sizeClass="text-[15vw]" stroke="1px rgba(212,168,56,0.12)" className="absolute inset-0" />
       {/* Decorative */}
       <div className="absolute inset-0 opacity-[0.04]">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold-300 rounded-full blur-3xl" />

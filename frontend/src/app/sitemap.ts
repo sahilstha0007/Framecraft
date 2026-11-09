@@ -13,14 +13,8 @@ const LOCALES = ["en", "ne"] as const;
 const STATIC_PATHS: { path: string; priority: number; changeFrequency: "weekly" | "monthly" }[] = [
   { path: "", priority: 1, changeFrequency: "weekly" },
   { path: "/shop", priority: 0.9, changeFrequency: "weekly" },
-  { path: "/frames", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/gallery", priority: 0.7, changeFrequency: "weekly" },
-  { path: "/services", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/about", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/contact", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/sellers", priority: 0.8, changeFrequency: "weekly" },
   { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
-  { path: "/sellers", priority: 0.7, changeFrequency: "weekly" },
-  { path: "/custom", priority: 0.6, changeFrequency: "monthly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Menu, X, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -12,26 +12,57 @@ import LogoParticles from "./LogoParticles";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 
+// Scroll thresholds (px) for the morphing bar.
+const SCROLLED_AT = 40; // pill starts shrinking + hairline fades in
+const HIDE_AT = 320; // never tuck away near the top of the page
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const t = useTranslations("nav");
   const ta = useTranslations("auth");
   const { user, loading, signOut } = useAuth();
   const { count, setOpen: setCartOpen } = useCart();
+
+  // ── Scroll-aware morph ──
+  // One rAF-backed motion value drives everything: the pill shrinks and the
+  // gold hairline fills along its bottom edge once scrolled; scrolling down
+  // past HIDE_AT tucks the bar away (closing the mobile menu with it) and
+  // scrolling up slides it back in.
+  const { scrollY, scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, {
+    stiffness: 140,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
+  // Stable handler so framer-motion subscribes once instead of re-subscribing
+  // on every scrolled/hidden state flip (scrollY and the setters never change).
+  const handleScroll = useCallback(
+    (y: number) => {
+      const prev = scrollY.getPrevious() ?? 0;
+      setScrolled(y > SCROLLED_AT);
+      if (y > HIDE_AT && y > prev) {
+        setHidden(true);
+        setIsOpen(false);
+      } else if (y <= HIDE_AT || y < prev) {
+        setHidden(false);
+      }
+    },
+    [scrollY]
+  );
+
+  useMotionValueEvent(scrollY, "change", handleScroll);
 
   // Locale-aware nav items — labels come from translations, paths from the
   // (unchanged) route map so links work under /en and /ne automatically.
   const navLinks = [
     { name: t("home"), path: "/" },
     { name: t("shop"), path: "/shop" },
-    { name: t("blog"), path: "/blog" },
+    { name: t("auctions"), path: "/shop?auction=1" },
     { name: t("sellers"), path: "/sellers" },
-    { name: t("frames"), path: "/frames" },
-    { name: t("custom"), path: "/custom" },
-    { name: t("gallery"), path: "/gallery" },
-    { name: t("services"), path: "/services" },
-    { name: t("contact"), path: "/contact" },
+    { name: t("blog"), path: "/blog" },
   ];
 
   const cartButton = (
@@ -49,32 +80,40 @@ export default function Navbar() {
     </button>
   );
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
       <div className="w-full max-w-full sm:max-w-7xl mx-auto px-2 sm:px-4 pt-3 sm:pt-4">
-        {/* ── Glass pill ── */}
-        <nav
-          className={`
-            relative w-full
-            glass-nav
-            rounded-2xl
-            overflow-hidden
-            transition-shadow duration-700
-            ${scrolled ? "shadow-lg shadow-black/[0.06] dark:shadow-black/40" : ""}
-            pointer-events-auto
-          `}
+        {/* The whole bar (pill + mobile menu) shares one slide-out motion. */}
+        <motion.div
+          animate={{ y: hidden ? "-140%" : 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 32, mass: 0.9 }}
+          // While tucked away the bar must leave the tab order + a11y tree,
+          // not just ignore the mouse (pointer-events alone doesn't cover
+          // keyboard focus on the translated-off-screen links).
+          inert={hidden}
+          className={hidden ? "pointer-events-none" : ""}
         >
-          <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-5">
-            {/* Logo */}
-            <Link href="/" className="flex items-center group shrink-0">
-              <LogoParticles />
-            </Link>
+          {/* ── Glass pill ── */}
+          <nav
+            className={`
+              relative w-full
+              glass-nav
+              ${scrolled ? "glass-nav-scrolled h-12 sm:h-14 rounded-xl" : "h-14 sm:h-16 rounded-2xl"}
+              overflow-hidden
+              transition-[height,border-radius,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
+              pointer-events-auto
+            `}
+          >
+            <div className="flex items-center justify-between h-full px-3 sm:px-5">
+              {/* Logo — scales down slightly as the pill tightens */}
+              <Link
+                href="/"
+                className={`flex items-center group shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  scrolled ? "scale-[0.9]" : "scale-100"
+                }`}
+              >
+                <LogoParticles />
+              </Link>
 
             {/* Desktop Navigation */}
             <div className="hidden xl:flex items-center gap-0.5 min-w-0">
@@ -145,10 +184,10 @@ export default function Navbar() {
                   </div>
                 )}
                 <Link
-                  href="/booking"
+                  href="/register"
                   className="relative px-3.5 xl:px-4 py-2 bg-gold-600 hover:bg-gold-700 text-white text-sm font-medium tracking-wide uppercase rounded-lg transition-all duration-300 overflow-hidden group shrink-0 whitespace-nowrap"
                 >
-                  <span className="relative z-10">{t("bookNow")}</span>
+                  <span className="relative z-10">{t("sellArt")}</span>
                   <span className="absolute inset-0 bg-gradient-to-b from-gold-400 to-gold-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </Link>
               </div>
@@ -168,10 +207,19 @@ export default function Navbar() {
                 {isOpen ? <X size={22} /> : <Menu size={22} />}
               </button>
             </div>
-          </div>
-        </nav>
+            </div>
 
-        {/* ── Mobile Menu Dropdown (glass panel) ── */}
+            {/* ── Gold progress hairline: fills the pill's bottom edge ── */}
+            <motion.span
+              aria-hidden="true"
+              style={{ scaleX: progress }}
+              className={`absolute bottom-0 left-0 right-0 h-[2px] origin-left bg-gradient-to-r from-gold-600 via-gold-500 to-gold-300 transition-opacity duration-500 ${
+                scrolled ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          </nav>
+
+          {/* ── Mobile Menu Dropdown (glass panel) ── */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -255,17 +303,18 @@ export default function Navbar() {
                     </div>
                   )}
                   <Link
-                    href="/booking"
+                    href="/register"
                     onClick={() => setIsOpen(false)}
                     className="block w-full py-2.5 px-5 bg-gold-600 hover:bg-gold-700 text-white text-center text-sm font-medium tracking-wider uppercase rounded-lg transition-all duration-200"
                   >
-                    {t("bookNow")}
+                    {t("sellArt")}
                   </Link>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+        </motion.div>
       </div>
     </header>
   );

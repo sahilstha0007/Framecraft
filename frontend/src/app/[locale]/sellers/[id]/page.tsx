@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "meta" });
   const seller = await fetchSeller(id);
   const name = seller?.shopName || seller?.name;
-  const title = name ? `${name} — Artist & Seller | FrameCraft` : t("title");
+  const title = name ? `${name} — Artist & Seller | Kala Bazaar` : t("title");
   const description = (seller?.bio ?? t("description")).slice(0, 160);
   return {
     title,

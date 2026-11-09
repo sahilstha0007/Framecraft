@@ -47,6 +47,7 @@ export default function SettingsManager({ onToast }: { onToast: (toast: Toast) =
       .finally(() => setLoading(false));
   }, [onToast]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount: setState happens in async response callbacks
   useEffect(load, [load]);
 
   const save = async () => {
@@ -76,7 +77,7 @@ export default function SettingsManager({ onToast }: { onToast: (toast: Toast) =
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {SETTING_KEYS.map((key) => (
           <label key={key} className="block">
-            <span className="block font-mono text-[0.6rem] tracking-[0.2em] uppercase text-gold-400/70 mb-1.5">
+            <span className="block font-mono text-[0.7rem] tracking-[0.2em] uppercase text-gold-400/70 mb-1.5">
               {LABELS[key]}
             </span>
             {key === "address" || key === "hours" ? (

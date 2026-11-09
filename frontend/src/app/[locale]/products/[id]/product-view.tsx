@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Gavel,
@@ -79,6 +79,23 @@ interface ReviewsData {
   reviews: Review[];
 }
 
+/* Static rating row — a real module-level component (not created during
+   render) so it can call `useTranslations` itself. */
+function StarRow({ value, size = 13 }: { value: number; size?: number }) {
+  const t = useTranslations("productPage");
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={t("averageRating", { rating: value })}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={size}
+          className={i <= Math.round(value) ? "fill-gold-400 text-gold-400" : "text-charcoal-300 dark:text-white/15"}
+        />
+      ))}
+    </span>
+  );
+}
+
 export default function ProductView() {
   const t = useTranslations("productPage");
   const ts = useTranslations("shopPage");
@@ -100,7 +117,9 @@ export default function ProductView() {
   const [bidBusy, setBidBusy] = useState(false);
   const [bidError, setBidError] = useState<string | null>(null);
   const [bidOk, setBidOk] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
+  // One-time countdown baseline, lazily initialised — only seeds the auction
+  // countdown clock, and the lazy initializer keeps it out of the render body.
+  const [now, setNow] = useState(() => Date.now());
   const [comment, setComment] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [added, setAdded] = useState(false);
@@ -148,6 +167,10 @@ export default function ProductView() {
   }, [params.id, record]);
 
   useEffect(() => {
+    // Data fetch on mount. `load` sets state only in async response callbacks
+    // (after `await`), never synchronously — this is the canonical client-side
+    // data-fetching pattern, not a cascading-render hazard.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch-on-mount; setState happens in response callbacks
     load();
   }, [load]);
 
@@ -167,7 +190,10 @@ export default function ProductView() {
     return () => window.clearInterval(id);
   }, [product?.auction, product?.status, params.id]);
 
-  const timeLeft = useMemo(() => {
+  // Countdown text derived from `now`. Computed inline (no useMemo): it only
+  // recomputes when the 6s auction ticker re-renders anyway, and deriving it
+  // avoids a memo whose deps the compiler can't preserve.
+  const timeLeft = (() => {
     if (!product?.endsAt) return null;
     const diff = new Date(product.endsAt.replace(" ", "T")).getTime() - now;
     if (diff <= 0) return { done: true, text: t("ended") };
@@ -177,7 +203,7 @@ export default function ProductView() {
     const s = Math.floor((diff % 60_000) / 1000);
     const pad = (n: number) => String(n).padStart(2, "0");
     return { done: false, text: `${d}d ${pad(h)}:${pad(m)}:${pad(s)}` };
-  }, [product?.endsAt, now, t]);
+  })();
 
   const floor = (product?.currentBid ?? product?.startingBid ?? 0) + (product?.minIncrement ?? 0);
   const outOfStock = !product?.auction && (product?.stock ?? 0) <= 0;
@@ -347,18 +373,6 @@ export default function ProductView() {
     !!product?.sellerId &&
     (user.id === product.sellerId || user.role === "admin");
 
-  const StarRow = ({ value, size = 13 }: { value: number; size?: number }) => (
-    <span className="inline-flex items-center gap-0.5" aria-label={t("averageRating", { rating: value })}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          size={size}
-          className={i <= Math.round(value) ? "fill-gold-400 text-gold-400" : "text-charcoal-300 dark:text-white/15"}
-        />
-      ))}
-    </span>
-  );
-
   const label = (s: string) => t(statusKey(s));
 
   if (loadError) {
@@ -387,8 +401,8 @@ export default function ProductView() {
 
   return (
     <>
-      <section className="pt-32 pb-20 bg-cream-50 dark:bg-[#0a0a08] min-h-screen">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="pt-32 pb-20 bg-cream-50 dark:bg-[#0a0a08] min-h-[100dvh]">
+        <div className="max-w-6xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-10">
           <Link
             href="/shop"
             className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-charcoal-500 dark:text-white/40 hover:text-gold-600 dark:hover:text-gold-400 transition-colors"
@@ -410,7 +424,7 @@ export default function ProductView() {
                 />
               </div>
               {isAuction && (
-                <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0a08]/80 backdrop-blur text-gold-400 font-mono text-[0.6rem] tracking-[0.2em] uppercase">
+                <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0a08]/80 backdrop-blur text-gold-400 font-mono text-[0.7rem] tracking-[0.2em] uppercase">
                   <Gavel size={12} /> {t("auction")}
                 </span>
               )}
@@ -418,7 +432,7 @@ export default function ProductView() {
 
             {/* Details */}
             <div>
-              <span className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-gold-500/70">
+              <span className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-gold-500/70">
                 {product.category}
               </span>
               <h1 className="mt-2 font-heading text-3xl sm:text-4xl font-semibold text-charcoal-900 dark:text-white leading-tight">
@@ -442,7 +456,7 @@ export default function ProductView() {
                   <div className="space-y-4">
                     <div className="flex flex-wrap items-end justify-between gap-3">
                       <div>
-                        <div className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-charcoal-400 dark:text-white/30">
+                        <div className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-charcoal-400 dark:text-white/30">
                           {t("currentBid")}
                         </div>
                         <div className="mt-1 font-heading text-3xl font-semibold text-gold-600 dark:text-gold-400">
@@ -580,7 +594,7 @@ export default function ProductView() {
                     {bids.slice(0, 8).map((b, i) => (
                       <div key={b.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                         <span className="flex items-center gap-2 text-charcoal-700 dark:text-white/70">
-                          {i === 0 && <span className="text-[0.55rem] font-mono tracking-widest uppercase text-gold-500">★</span>}
+                          {i === 0 && <span className="text-[0.7rem] font-mono tracking-widest uppercase text-gold-500">★</span>}
                           {b.bidderName ?? "Anonymous"}
                         </span>
                         <span className="font-medium text-charcoal-900 dark:text-white">
@@ -626,7 +640,7 @@ export default function ProductView() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.author.avatar} alt={c.author.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
                   ) : (
-                    <span className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.6rem] font-mono text-gold-500 flex-shrink-0">
+                    <span className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.7rem] font-mono text-gold-500 flex-shrink-0">
                       {c.author.name.slice(0, 1).toUpperCase()}
                     </span>
                   )}
@@ -755,7 +769,7 @@ export default function ProductView() {
                           className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
-                        <span className="w-9 h-9 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.6rem] font-mono text-gold-500 flex-shrink-0">
+                        <span className="w-9 h-9 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-[0.7rem] font-mono text-gold-500 flex-shrink-0">
                           {r.author.name.slice(0, 1).toUpperCase()}
                         </span>
                       )}
@@ -792,7 +806,7 @@ export default function ProductView() {
                   )}
                   {r.reply && (
                     <div className="mt-3 pl-4 border-l-2 border-gold-500/40">
-                      <p className="text-[0.6rem] font-mono tracking-widest uppercase text-gold-500/80">
+                      <p className="text-[0.7rem] font-mono tracking-widest uppercase text-gold-600 dark:text-gold-400">
                         {t("seller")}
                       </p>
                       <p className="mt-1 text-sm text-charcoal-700 dark:text-white/60">{r.reply}</p>

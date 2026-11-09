@@ -12,122 +12,26 @@ export const db = new SQL(config.databaseUrl);
  */
 export async function migrate() {
   // Multiple statements are allowed when no parameters are used.
+
+  // ── Legacy studio tables (custom framing era) — gone for good.
+  // DROP ... IF EXISTS keeps pre-existing databases clean on boot.
   await db.unsafe(`
-    CREATE TABLE IF NOT EXISTS frames (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      category TEXT NOT NULL,
-      material TEXT NOT NULL,
-      sizes TEXT NOT NULL,
-      price_range TEXT NOT NULL,
-      image TEXT NOT NULL,
-      description TEXT NOT NULL,
-      popular INTEGER NOT NULL DEFAULT 0
-    );
+    DROP TABLE IF EXISTS custom_quotes CASCADE;
+    DROP TABLE IF EXISTS bookings CASCADE;
+    DROP TABLE IF EXISTS newsletter_subscribers CASCADE;
+    DROP TABLE IF EXISTS contacts CASCADE;
+    DROP TABLE IF EXISTS mat_options CASCADE;
+    DROP TABLE IF EXISTS glass_types CASCADE;
+    DROP TABLE IF EXISTS team_members CASCADE;
+    DROP TABLE IF EXISTS testimonials CASCADE;
+    DROP TABLE IF EXISTS services CASCADE;
+    DROP TABLE IF EXISTS gallery_items CASCADE;
+    DROP TABLE IF EXISTS frames CASCADE;
+  `);
 
-    CREATE TABLE IF NOT EXISTS gallery_items (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      category TEXT NOT NULL,
-      image TEXT NOT NULL,
-      description TEXT NOT NULL,
-      client TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS services (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      icon TEXT NOT NULL,
-      features TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS testimonials (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      role TEXT NOT NULL,
-      content TEXT NOT NULL,
-      rating INTEGER NOT NULL,
-      image TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS team_members (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      role TEXT NOT NULL,
-      bio TEXT NOT NULL,
-      image TEXT NOT NULL,
-      experience TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS glass_types (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT NOT NULL,
-      price REAL NOT NULL,
-      features TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS mat_options (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      color TEXT NOT NULL,
-      price REAL NOT NULL,
-      description TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS bookings (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT,
-      service TEXT NOT NULL,
-      date TEXT NOT NULL,
-      time TEXT,
-      message TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
-    );
-
-    CREATE TABLE IF NOT EXISTS contacts (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT,
-      subject TEXT,
-      message TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
-    );
-
-    CREATE TABLE IF NOT EXISTS newsletter_subscribers (
-      id SERIAL PRIMARY KEY,
-      email TEXT NOT NULL UNIQUE,
-      created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
-    );
-
-    CREATE TABLE IF NOT EXISTS custom_quotes (
-      id SERIAL PRIMARY KEY,
-      frame_id INTEGER NOT NULL,
-      frame_name TEXT NOT NULL,
-      width REAL NOT NULL,
-      height REAL NOT NULL,
-      mat_id TEXT,
-      mat_name TEXT,
-      glass_id TEXT,
-      glass_name TEXT,
-      quantity INTEGER NOT NULL DEFAULT 1,
-      base_price REAL NOT NULL,
-      mat_price REAL NOT NULL DEFAULT 0,
-      glass_price REAL NOT NULL DEFAULT 0,
-      size_factor REAL NOT NULL DEFAULT 1,
-      total REAL NOT NULL,
-      name TEXT,
-      email TEXT,
-      created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
-    );
-
-    -- Three-role marketplace: customers (buyers), sellers (marketplace vendors
-    -- with their own shop), admin (the studio owner running the whole console).
+  await db.unsafe(`
+    -- Three-role marketplace: customers (buyers), sellers (marketplace
+    -- vendors with their own shop), admin (the owner running the console).
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -166,13 +70,6 @@ export async function migrate() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
-
-    -- Link bookings/quotes to accounts (when the visitor is signed in) and
-    -- give sellers a status + internal notes field for each.
-    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id);
-    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS notes TEXT;
-    ALTER TABLE custom_quotes ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id);
-    ALTER TABLE custom_quotes ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
 
     -- Shop: products (art & goods) and the orders customers place.
     -- auction = 1 marks an auction-only item: no fixed price, bidding starts

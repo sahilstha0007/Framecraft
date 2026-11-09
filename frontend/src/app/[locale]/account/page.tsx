@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  CalendarDays,
-  Ruler,
   ShoppingBag,
   Gavel,
   Heart,
@@ -18,31 +16,11 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, type AuthUser } from "@/lib/api";
 import { formatNPR } from "@/lib/nepali";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge, { statusKey } from "@/components/StatusBadge";
 import { useCart } from "@/lib/cart";
-
-interface Booking {
-  id: number;
-  service: string;
-  date: string;
-  time: string | null;
-  status: string;
-  createdAt: string;
-}
-
-interface Quote {
-  id: number;
-  frameName: string;
-  width: number;
-  height: number;
-  quantity: number;
-  total: number;
-  status: string;
-  createdAt: string;
-}
 
 interface OrderItem {
   productId: number;
@@ -90,7 +68,140 @@ interface SavedProduct {
   status: string;
 }
 
-type Tab = "overview" | "orders" | "bids" | "saved" | "settings";
+type Tab = "orders" | "bids" | "saved" | "settings";
+
+const inputClass =
+  "w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border border-charcoal-200 dark:border-white/10 text-sm text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-white/30 rounded-sm focus:outline-none focus:border-gold-500/60 focus:ring-1 focus:ring-gold-400/30 transition-colors";
+const panelClass =
+  "relative p-6 sm:p-8 border border-charcoal-200/70 bg-charcoal-900/[0.02] dark:border-white/[0.08] dark:bg-white/[0.02]";
+
+/* Visual status timeline — oldest first, latest highlighted as current.
+   Module-level so it's not recreated on every render. */
+function OrderTimeline({ events, status }: { events: OrderEvent[]; status: string }) {
+  const t = useTranslations("account");
+  const locale = useLocale();
+  const list = events.length > 0 ? events : [{ status, note: null, createdAt: "" }];
+  return (
+    <ol className="mt-4">
+      {list.map((ev, i) => {
+        const isLast = i === list.length - 1;
+        return (
+          <li key={i} className="relative pl-8 pb-5 last:pb-0">
+            {!isLast && (
+              <span
+                className="absolute left-[7px] top-4 bottom-0 w-px bg-gold-500/30"
+                aria-hidden="true"
+              />
+            )}
+            <span
+              className={`absolute left-0 top-0.5 w-[15px] h-[15px] rounded-full border-2 flex items-center justify-center ${
+                isLast
+                  ? "bg-gold-500 border-gold-500"
+                  : "bg-cream-50 dark:bg-[#0a0a08] border-gold-500/60"
+              }`}
+            >
+              {isLast && <CheckCircle2 size={9} className="text-[#0a0a08]" />}
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={ev.status} label={t(statusKey(ev.status))} />
+              {ev.createdAt && (
+                <span className="text-[0.6rem] text-charcoal-400 dark:text-white/25">
+                  {new Date(ev.createdAt.replace(" ", "T")).toLocaleString(locale)}
+                </span>
+              )}
+            </div>
+            {ev.note && (
+              <p className="mt-1 text-xs text-charcoal-500 dark:text-white/40">{ev.note}</p>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/* Profile editor — a module-level component that seeds its local state from
+   `user` and is remounted via `key={user.id}` when the user changes. That
+   replaces the old `useEffect(() => setProfile(user…))` sync pattern with
+   React's recommended keyed-reset, avoiding a cascading render in an effect. */
+function ProfileForm({ user }: { user: AuthUser }) {
+  const ts = useTranslations("settings");
+  const { refresh } = useAuth();
+  const [profile, setProfile] = useState({
+    name: user.name ?? "",
+    bio: user.bio ?? "",
+    avatar: user.avatar ?? "",
+    shopName: user.shopName ?? "",
+    location: user.location ?? "",
+    website: user.website ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMsg(null);
+    try {
+      await api.updateProfile({
+        name: profile.name.trim(),
+        bio: profile.bio,
+        avatar: profile.avatar,
+        shopName: profile.shopName,
+        location: profile.location,
+        website: profile.website,
+      });
+      await refresh();
+      setMsg(ts("saved"));
+    } catch (err) {
+      setMsg(err instanceof ApiError ? err.message : ts("saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} className={panelClass}>
+      <span className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" aria-hidden="true" />
+      <h2 className="font-heading text-lg font-semibold text-charcoal-900 dark:text-white mb-5">{ts("profileTitle")}</h2>
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="p-name" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("name")}</label>
+          <input id="p-name" type="text" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className={inputClass} />
+        </div>
+        <div>
+          <label htmlFor="p-avatar" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("avatar")}</label>
+          <input id="p-avatar" type="text" value={profile.avatar} onChange={(e) => setProfile({ ...profile, avatar: e.target.value })} placeholder="https://…" className={inputClass} />
+        </div>
+        <div>
+          <label htmlFor="p-location" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("location")}</label>
+          <input id="p-location" type="text" value={profile.location} onChange={(e) => setProfile({ ...profile, location: e.target.value })} className={inputClass} />
+        </div>
+        <div>
+          <label htmlFor="p-website" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("website")}</label>
+          <input id="p-website" type="text" value={profile.website} onChange={(e) => setProfile({ ...profile, website: e.target.value })} className={inputClass} />
+        </div>
+        <div>
+          <label htmlFor="p-bio" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("bio")}</label>
+          <textarea id="p-bio" rows={4} value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} className={`${inputClass} resize-none`} />
+        </div>
+        {user.role === "seller" && (
+          <div>
+            <label htmlFor="p-shop" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("shopName")}</label>
+            <input id="p-shop" type="text" value={profile.shopName} onChange={(e) => setProfile({ ...profile, shopName: e.target.value })} className={inputClass} />
+          </div>
+        )}
+        {msg && (
+          <p className="text-xs text-emerald-600 dark:text-emerald-400">{msg}</p>
+        )}
+        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-walnut-600 hover:bg-walnut-700 dark:bg-gold-500 dark:hover:bg-gold-600 disabled:opacity-50 text-white dark:text-charcoal-900 text-xs font-medium tracking-[0.15em] uppercase rounded-sm transition-colors cursor-pointer">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+          {ts("save")}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export default function AccountPage() {
   const t = useTranslations("account");
@@ -98,19 +209,14 @@ export default function AccountPage() {
   const ta = useTranslations("auth");
   const ts = useTranslations("settings");
   const locale = useLocale();
-  const { user, loading, refresh } = useAuth();
+  const { user, loading } = useAuth();
   const { add } = useCart();
 
-  const [tab, setTab] = useState<Tab>("overview");
-  const [bookings, setBookings] = useState<Booking[] | null>(null);
-  const [quotes, setQuotes] = useState<Quote[] | null>(null);
+  const [tab, setTab] = useState<Tab>("orders");
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [bids, setBids] = useState<MyBid[] | null>(null);
   const [saved, setSaved] = useState<SavedProduct[] | null>(null);
 
-  const [profile, setProfile] = useState({ name: "", bio: "", avatar: "", shopName: "", location: "", website: "" });
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [pw, setPw] = useState({ current: "", next: "" });
   const [savingPw, setSavingPw] = useState(false);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
@@ -120,22 +226,8 @@ export default function AccountPage() {
   const [trackError, setTrackError] = useState<string | null>(null);
   const [trackBusy, setTrackBusy] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    setProfile({
-      name: user.name ?? "",
-      bio: user.bio ?? "",
-      avatar: user.avatar ?? "",
-      shopName: user.shopName ?? "",
-      location: user.location ?? "",
-      website: user.website ?? "",
-    });
-  }, [user]);
-
   const load = useCallback(() => {
     if (!user) return;
-    api.list<Booking>("/api/my/bookings").then(setBookings).catch(() => setBookings([]));
-    api.list<Quote>("/api/my/quotes").then(setQuotes).catch(() => setQuotes([]));
     api.list<Order>("/api/my/orders").then(setOrders).catch(() => setOrders([]));
     api.list<MyBid>("/api/me/bids").then(setBids).catch(() => setBids([]));
     api.list<SavedProduct>("/api/me/likes").then(setSaved).catch(() => setSaved([]));
@@ -160,70 +252,6 @@ export default function AccountPage() {
       setTrackError(t("notFound"));
     } finally {
       setTrackBusy(false);
-    }
-  };
-
-  /* Visual status timeline — oldest first, latest highlighted as current. */
-  const OrderTimeline = ({ events, status }: { events: OrderEvent[]; status: string }) => {
-    const list = events.length > 0 ? events : [{ status, note: null, createdAt: "" }];
-    return (
-      <ol className="mt-4">
-        {list.map((ev, i) => {
-          const isLast = i === list.length - 1;
-          return (
-            <li key={i} className="relative pl-8 pb-5 last:pb-0">
-              {!isLast && (
-                <span
-                  className="absolute left-[7px] top-4 bottom-0 w-px bg-gold-500/30"
-                  aria-hidden="true"
-                />
-              )}
-              <span
-                className={`absolute left-0 top-0.5 w-[15px] h-[15px] rounded-full border-2 flex items-center justify-center ${
-                  isLast
-                    ? "bg-gold-500 border-gold-500"
-                    : "bg-cream-50 dark:bg-[#0a0a08] border-gold-500/60"
-                }`}
-              >
-                {isLast && <CheckCircle2 size={9} className="text-[#0a0a08]" />}
-              </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={ev.status} label={label(ev.status)} />
-                {ev.createdAt && (
-                  <span className="text-[0.6rem] text-charcoal-400 dark:text-white/25">
-                    {new Date(ev.createdAt.replace(" ", "T")).toLocaleString(locale)}
-                  </span>
-                )}
-              </div>
-              {ev.note && (
-                <p className="mt-1 text-xs text-charcoal-500 dark:text-white/40">{ev.note}</p>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    );
-  };
-
-  const saveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingProfile(true);
-    setProfileMsg(null);
-    try {
-      await api.updateProfile({
-        name: profile.name.trim(),
-        bio: profile.bio,
-        avatar: profile.avatar,
-        shopName: profile.shopName,
-        location: profile.location,
-        website: profile.website,
-      });
-      await refresh();
-      setProfileMsg(ts("saved"));
-    } catch (err) {
-      setProfileMsg(err instanceof ApiError ? err.message : ts("saveFailed"));
-    } finally {
-      setSavingProfile(false);
     }
   };
 
@@ -255,7 +283,7 @@ export default function AccountPage() {
             </>
           }
           description={t("subtitle")}
-          image="https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1920&q=85"
+          image="/art/photo-frame.jpg"
         />
         <section className="py-20 bg-cream-50 dark:bg-[#0a0a08]">
           <div className="max-w-md mx-auto px-4">
@@ -284,7 +312,7 @@ export default function AccountPage() {
     );
   }
 
-  if (loading || !bookings || !quotes || !orders || !bids || !saved) {
+  if (loading || !orders || !bids || !saved) {
     return (
       <section className="min-h-[70vh] flex items-center justify-center bg-cream-50 dark:bg-[#0a0a08]">
         <Loader2 size={22} className="animate-spin text-gold-400" />
@@ -292,18 +320,12 @@ export default function AccountPage() {
     );
   }
 
-  const TABS: { id: Tab; label: string; icon: typeof CalendarDays }[] = [
-    { id: "overview", label: t("tabOverview"), icon: CalendarDays },
+  const TABS: { id: Tab; label: string; icon: typeof ShoppingBag }[] = [
     { id: "orders", label: to("ordersTitle"), icon: ShoppingBag },
     { id: "bids", label: t("tabBids"), icon: Gavel },
     { id: "saved", label: t("tabSaved"), icon: Heart },
     { id: "settings", label: t("tabSettings"), icon: SettingsIcon },
   ];
-
-  const inputClass =
-    "w-full px-3 py-2.5 bg-white dark:bg-white/[0.04] border border-charcoal-200 dark:border-white/10 text-sm text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-white/30 rounded-sm focus:outline-none focus:border-gold-500/60 focus:ring-1 focus:ring-gold-400/30 transition-colors";
-  const panelClass =
-    "relative p-6 sm:p-8 border border-charcoal-200/70 bg-charcoal-900/[0.02] dark:border-white/[0.08] dark:bg-white/[0.02]";
 
   return (
     <>
@@ -315,7 +337,7 @@ export default function AccountPage() {
           </>
         }
         description={t("subtitle")}
-        image="https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1920&q=85"
+        image="/art/photo-frame.jpg"
       />
 
       <section className="py-12 sm:py-16 bg-cream-50 dark:bg-[#0a0a08]">
@@ -348,77 +370,6 @@ export default function AccountPage() {
             ))}
           </div>
 
-          {/* ── Overview ── */}
-          {tab === "overview" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className={panelClass}>
-                <span className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" aria-hidden="true" />
-                <div className="flex items-center gap-2.5 mb-5">
-                  <CalendarDays size={17} className="text-gold-400" />
-                  <h2 className="font-heading text-lg font-semibold text-charcoal-900 dark:text-white">{t("bookingsTitle")}</h2>
-                </div>
-                {bookings.length === 0 ? (
-                  <div className="py-10 text-center">
-                    <p className="text-sm text-charcoal-500 dark:text-white/35">{t("noBookings")}</p>
-                    <Link href="/booking" className="mt-4 inline-flex items-center gap-2 text-xs font-medium tracking-wider uppercase text-gold-600 dark:text-gold-400 hover:underline">
-                      {t("bookNow")}
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {bookings.map((b) => (
-                      <div key={b.id} className="p-4 border border-charcoal-200/60 dark:border-white/[0.07] bg-white/40 dark:bg-white/[0.02]">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-charcoal-800 dark:text-white/85 truncate">{b.service}</p>
-                            <p className="mt-1 text-xs text-charcoal-500 dark:text-white/40">
-                              {b.date}
-                              {b.time ? ` · ${b.time}` : ""}
-                            </p>
-                          </div>
-                          <StatusBadge status={b.status} label={label(b.status)} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className={panelClass}>
-                <span className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" aria-hidden="true" />
-                <div className="flex items-center gap-2.5 mb-5">
-                  <Ruler size={17} className="text-gold-400" />
-                  <h2 className="font-heading text-lg font-semibold text-charcoal-900 dark:text-white">{t("quotesTitle")}</h2>
-                </div>
-                {quotes.length === 0 ? (
-                  <div className="py-10 text-center">
-                    <p className="text-sm text-charcoal-500 dark:text-white/35">{t("noQuotes")}</p>
-                    <Link href="/custom" className="mt-4 inline-flex items-center gap-2 text-xs font-medium tracking-wider uppercase text-gold-600 dark:text-gold-400 hover:underline">
-                      {t("buildFrame")}
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {quotes.map((q) => (
-                      <div key={q.id} className="p-4 border border-charcoal-200/60 dark:border-white/[0.07] bg-white/40 dark:bg-white/[0.02]">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-charcoal-800 dark:text-white/85 truncate">{q.frameName}</p>
-                            <p className="mt-1 text-xs text-charcoal-500 dark:text-white/40">
-                              {q.width}″×{q.height}″ · ×{q.quantity}
-                            </p>
-                            <p className="mt-1 text-sm font-medium text-gold-600 dark:text-gold-400">{formatNPR(q.total, locale)}</p>
-                          </div>
-                          <StatusBadge status={q.status} label={label(q.status)} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* ── Orders ── */}
           {tab === "orders" && (
             <div className={panelClass}>
@@ -430,7 +381,7 @@ export default function AccountPage() {
 
               {/* Track by order number (works for guests too) */}
               <form onSubmit={trackOrder} className="mb-6 p-4 border border-charcoal-200/60 dark:border-white/[0.07] bg-white/40 dark:bg-white/[0.02]">
-                <p className="text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30 mb-2">
+                <p className="text-[0.7rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30 mb-2">
                   {t("trackOrder")}
                 </p>
                 <div className="flex gap-2">
@@ -454,7 +405,7 @@ export default function AccountPage() {
                 {trackError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{trackError}</p>}
                 {trackEvents && (
                   <div className="mt-4">
-                    <p className="text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30 mb-1">
+                    <p className="text-[0.7rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30 mb-1">
                       {t("timelineTitle")}
                     </p>
                     <OrderTimeline events={trackEvents} status={trackEvents[trackEvents.length - 1]?.status ?? "pending"} />
@@ -492,7 +443,7 @@ export default function AccountPage() {
                       </div>
                       {o.events.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-charcoal-200/40 dark:border-white/[0.06]">
-                          <p className="text-[0.6rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30">
+                          <p className="text-[0.7rem] font-mono tracking-[0.2em] uppercase text-charcoal-400 dark:text-white/30">
                             {t("timelineTitle")}
                           </p>
                           <OrderTimeline events={o.events} status={o.status} />
@@ -584,46 +535,8 @@ export default function AccountPage() {
           {/* ── Settings ── */}
           {tab === "settings" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Profile */}
-              <form onSubmit={saveProfile} className={panelClass}>
-                <span className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" aria-hidden="true" />
-                <h2 className="font-heading text-lg font-semibold text-charcoal-900 dark:text-white mb-5">{ts("profileTitle")}</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="p-name" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("name")}</label>
-                    <input id="p-name" type="text" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className={inputClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="p-avatar" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("avatar")}</label>
-                    <input id="p-avatar" type="text" value={profile.avatar} onChange={(e) => setProfile({ ...profile, avatar: e.target.value })} placeholder="https://…" className={inputClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="p-location" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("location")}</label>
-                    <input id="p-location" type="text" value={profile.location} onChange={(e) => setProfile({ ...profile, location: e.target.value })} className={inputClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="p-website" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("website")}</label>
-                    <input id="p-website" type="text" value={profile.website} onChange={(e) => setProfile({ ...profile, website: e.target.value })} className={inputClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="p-bio" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("bio")}</label>
-                    <textarea id="p-bio" rows={4} value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} className={`${inputClass} resize-none`} />
-                  </div>
-                  {user?.role === "seller" && (
-                    <div>
-                      <label htmlFor="p-shop" className="block text-xs font-medium text-charcoal-700 dark:text-cream-200 mb-1.5">{ts("shopName")}</label>
-                      <input id="p-shop" type="text" value={profile.shopName} onChange={(e) => setProfile({ ...profile, shopName: e.target.value })} className={inputClass} />
-                    </div>
-                  )}
-                  {profileMsg && (
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400">{profileMsg}</p>
-                  )}
-                  <button type="submit" disabled={savingProfile} className="inline-flex items-center gap-2 px-5 py-2.5 bg-walnut-600 hover:bg-walnut-700 dark:bg-gold-500 dark:hover:bg-gold-600 disabled:opacity-50 text-white dark:text-charcoal-900 text-xs font-medium tracking-[0.15em] uppercase rounded-sm transition-colors cursor-pointer">
-                    {savingProfile ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                    {ts("save")}
-                  </button>
-                </div>
-              </form>
+              {/* Profile — keyed by user so the form resets when the account changes */}
+              <ProfileForm key={user?.id ?? "anon"} user={user!} />
 
               <div className="space-y-8">
                 {/* Password */}

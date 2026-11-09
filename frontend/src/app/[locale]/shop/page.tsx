@@ -136,7 +136,7 @@ function ShopBrowser() {
     activeCategory !== t("all") || auctionOnly || inStockOnly || sort || minPrice || maxPrice;
 
   const chipBase =
-    "whitespace-nowrap px-4 py-2 text-[0.6rem] font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400";
+    "whitespace-nowrap px-4 py-2 text-[0.7rem] font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400";
   const chipIdle =
     "border border-charcoal-200 text-charcoal-500 hover:text-charcoal-800 hover:border-charcoal-400 dark:border-white/10 dark:text-white/50 dark:hover:text-white/80 dark:hover:border-white/20";
   const chipActive = "bg-gold-500 text-[#0a0a08]";
@@ -158,7 +158,7 @@ function ShopBrowser() {
 
       {/* Filters */}
       <section className="sticky top-20 z-30 border-b border-charcoal-200/60 dark:border-white/[0.06] bg-cream-50/85 dark:bg-[#0a0a08]/85 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto scrollbar-none">
               {categories.map((cat) => (
@@ -201,7 +201,7 @@ function ShopBrowser() {
 
           {/* Second row: sort, price range, in-stock */}
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
-            <label className="flex items-center gap-2 text-[0.6rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 dark:text-white/40">
+            <label className="flex items-center gap-2 text-[0.7rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 dark:text-white/40">
               <ArrowUpDown size={12} className="text-gold-400/70" />
               {t("sortLabel")}
               <select
@@ -228,7 +228,7 @@ function ShopBrowser() {
                 aria-label={t("minPrice")}
                 className={`${fieldClass} w-36`}
               />
-              <span className="text-charcoal-400 dark:text-white/30 font-mono text-xs">—</span>
+              <span className="text-charcoal-400 dark:text-white/30 font-mono text-xs">-</span>
               <input
                 type="number"
                 min={0}
@@ -251,7 +251,7 @@ function ShopBrowser() {
             {hasFilters && (
               <button
                 onClick={resetAll}
-                className="text-[0.6rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 hover:text-gold-600 dark:text-white/40 dark:hover:text-gold-300 transition-colors cursor-pointer"
+                className="text-[0.7rem] font-mono tracking-[0.15em] uppercase text-charcoal-500 hover:text-gold-600 dark:text-white/40 dark:hover:text-gold-300 transition-colors cursor-pointer"
               >
                 {t("resetFilters")}
               </button>
@@ -262,8 +262,8 @@ function ShopBrowser() {
 
       {/* Grid */}
       <section className="py-16 sm:py-20 bg-cream-50 dark:bg-[#0a0a08] min-h-[50vh]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-10 font-mono text-[0.55rem] tracking-[0.25em] uppercase text-charcoal-500 dark:text-white/30">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
+          <div className="flex items-center justify-between mb-10 font-mono text-[0.7rem] tracking-[0.25em] uppercase text-charcoal-500 dark:text-white/30">
             <span>
               <SlidersHorizontal size={12} className="inline mr-2 text-gold-400/60" />
               {t("showing", { count: sorted.length })}{" "}
@@ -281,7 +281,7 @@ function ShopBrowser() {
 
           {sorted.length === 0 ? (
             <div className="text-center py-24">
-              <div className="font-mono text-[0.6rem] tracking-[0.3em] uppercase text-charcoal-400 dark:text-white/25 mb-5">
+              <div className="font-mono text-[0.7rem] tracking-[0.3em] uppercase text-charcoal-400 dark:text-white/25 mb-5">
                 {t("noResults")}
               </div>
               <h3 className="text-2xl font-heading font-semibold text-charcoal-900 dark:text-white">
@@ -306,20 +306,20 @@ function ShopBrowser() {
           )}
 
           <div className="mt-16 border border-charcoal-200/70 dark:border-white/[0.08] bg-charcoal-900/[0.02] dark:bg-white/[0.02] p-8 sm:p-10 text-center">
-            <p className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-charcoal-400 dark:text-white/30">
+            <p className="font-mono text-[0.7rem] tracking-[0.25em] uppercase text-charcoal-400 dark:text-white/30">
               {t("eyebrow")}
             </p>
             <h3 className="mt-2 font-heading text-xl sm:text-2xl font-semibold text-charcoal-900 dark:text-white">
-              {t("customTitle")}
+              {t("sellTitle")}
             </h3>
             <p className="mt-2 text-sm text-charcoal-600 dark:text-white/45 max-w-md mx-auto">
-              {t("customBody")}
+              {t("sellBody")}
             </p>
             <Link
-              href="/custom"
+              href="/sellers"
               className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-walnut-600 hover:bg-walnut-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white dark:text-charcoal-900 text-xs font-medium tracking-wider uppercase rounded-sm transition-colors"
             >
-              {t("buildCustom")}
+              {t("meetArtists")}
             </Link>
           </div>
         </div>

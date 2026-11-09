@@ -12,8 +12,6 @@ interface User {
   email: string;
   role: "customer" | "seller" | "admin";
   createdAt: string;
-  bookings: number;
-  quotes: number;
 }
 
 export default function UsersManager({ onToast }: { onToast: (toast: Toast) => void }) {
@@ -31,6 +29,7 @@ export default function UsersManager({ onToast }: { onToast: (toast: Toast) => v
       .finally(() => setLoading(false));
   }, [onToast]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount: setState happens in async response callbacks
   useEffect(load, [load]);
 
   const changeRole = async (u: User, role: User["role"]) => {
@@ -108,16 +107,6 @@ export default function UsersManager({ onToast }: { onToast: (toast: Toast) => v
                 </span>
               </div>
               <p className="mt-1 text-xs text-cream-400/70">{u.email}</p>
-            </div>
-
-            {/* Request counts */}
-            <div className="flex gap-4 text-xs text-cream-400/70">
-              <span>
-                <span className="text-cream-100 font-medium">{u.bookings}</span> {t("bookingsTitle").toLowerCase()}
-              </span>
-              <span>
-                <span className="text-cream-100 font-medium">{u.quotes}</span> {t("quotesTitle").toLowerCase()}
-              </span>
             </div>
 
             {/* Role control */}

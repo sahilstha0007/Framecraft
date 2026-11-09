@@ -8,8 +8,6 @@ import { api, ApiError } from "@/lib/api";
 import { emitAuthChanged, useAuth } from "@/lib/auth";
 import { RESOURCES } from "@/lib/adminConfig";
 import ResourceManager, { type Toast } from "@/components/admin/ResourceManager";
-import BookingsManager from "@/components/admin/BookingsManager";
-import QuotesManager from "@/components/admin/QuotesManager";
 import OrdersManager from "@/components/admin/OrdersManager";
 import SettingsManager from "@/components/admin/SettingsManager";
 import UsersManager from "@/components/admin/UsersManager";
@@ -18,8 +16,6 @@ import AdminAnalytics from "@/components/admin/AdminAnalytics";
 const MANAGER_TABS = [
   { id: "analytics", titleKey: "tabsAnalytics" },
   { id: "orders", titleKey: "tabsOrders" },
-  { id: "shopOrders", titleKey: "tabsShopOrders" },
-  { id: "quotes", titleKey: "tabsQuotes" },
   { id: "users", titleKey: "tabsUsers" },
   { id: "settings", titleKey: "tabsSettings" },
 ] as const;
@@ -68,7 +64,7 @@ export default function AdminPage() {
   /* ── boot screen ── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0c0a08] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#0c0a08] flex items-center justify-center">
         <Loader2 size={22} className="animate-spin text-gold-400" />
       </div>
     );
@@ -76,7 +72,7 @@ export default function AdminPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0c0a08] flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] bg-[#0c0a08] flex items-center justify-center px-4">
         <div className="w-full max-w-sm border border-charcoal-700 bg-charcoal-900/70 p-8">
           <div className="w-12 h-12 bg-gold-500/15 border border-gold-500/30 flex items-center justify-center mb-6">
             <KeyRound size={20} className="text-gold-400" />
@@ -139,7 +135,7 @@ export default function AdminPage() {
   /* ── signed in but not an admin ── */
   if (user.role !== "admin") {
     return (
-      <div className="min-h-screen bg-[#0c0a08] flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] bg-[#0c0a08] flex items-center justify-center px-4">
         <div className="w-full max-w-sm border border-red-500/30 bg-charcoal-900/70 p-8 text-center">
           <AlertTriangle size={22} className="mx-auto text-red-400" />
           <p className="mt-4 text-sm text-cream-200">{t("wrongRole")}</p>
@@ -162,7 +158,7 @@ export default function AdminPage() {
   const isCatalogTab = active < RESOURCES.length;
 
   return (
-    <div className="min-h-screen bg-[#0c0a08] text-cream-100">
+    <div className="min-h-[100dvh] bg-[#0c0a08] text-cream-100">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-charcoal-800 bg-charcoal-900/70 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -170,7 +166,7 @@ export default function AdminPage() {
             <div className="font-heading text-xl text-cream-100">
               {t("brand")} <span className="text-gold-400">{t("brandSub")}</span>
             </div>
-            <div className="font-mono text-[0.55rem] tracking-[0.3em] uppercase text-cream-500/60 mt-0.5">
+            <div className="font-mono text-[0.7rem] tracking-[0.3em] uppercase text-cream-500/60 mt-0.5">
               {t("manage")}
             </div>
           </div>
@@ -223,18 +219,8 @@ export default function AdminPage() {
           </div>
         ) : activeTab.id === "orders" ? (
           <div className="space-y-6">
-            <SectionHead title={t("bookingsTitle")} desc={t("bookingsDesc")} />
-            <BookingsManager onToast={pushToast} />
-          </div>
-        ) : activeTab.id === "shopOrders" ? (
-          <div className="space-y-6">
             <SectionHead title={to("ordersTitle")} desc={to("ordersDesc")} />
             <OrdersManager onToast={pushToast} />
-          </div>
-        ) : activeTab.id === "quotes" ? (
-          <div className="space-y-6">
-            <SectionHead title={t("quotesTitle")} desc={t("quotesDesc")} />
-            <QuotesManager onToast={pushToast} />
           </div>
         ) : activeTab.id === "users" ? (
           <div className="space-y-6">

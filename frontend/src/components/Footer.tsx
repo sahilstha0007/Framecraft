@@ -45,20 +45,20 @@ export default function Footer() {
   const tn = useTranslations("nav");
 
   const navLinks = [
-    { name: tn("home"), path: "/" },
     { name: tn("shop"), path: "/shop" },
-    { name: tn("frames"), path: "/frames" },
-    { name: tn("custom"), path: "/custom" },
-    { name: tn("gallery"), path: "/gallery" },
-    { name: tn("services"), path: "/services" },
-    { name: tn("about"), path: "/about" },
-    { name: tn("contact"), path: "/contact" },
+    { name: tn("auctions"), path: "/shop?auction=1" },
+    { name: tn("sellers"), path: "/sellers" },
+    { name: tn("blog"), path: "/blog" },
   ];
 
-  // All links, split so quick links shows the first 8.
+  // Marketplace help links, all translated.
+  const helpList = [
+    { name: t("becomeSeller"), path: "/register" },
+    { name: tn("account"), path: "/account" },
+  ];
 
-  // Service names come from translations so the footer speaks the active locale.
-  const servicesList = t.raw("serviceList") as string[];
+  // Payment methods accepted at checkout — shown as quiet chips.
+  const payments = t.raw("payments") as string[];
 
   const socials = [
     { label: "Instagram", href: "#", icon: InstagramIcon, aria: t("instagram") },
@@ -90,17 +90,17 @@ export default function Footer() {
       <div className="relative h-[3px] bg-gradient-to-r from-transparent via-[#9b1b30] to-transparent" aria-hidden="true" />
 
       {/* Top section */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <div className="relative max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-16 lg:py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
           {/* Brand */}
           <div>
             <Link href="/" className="text-2xl font-heading font-bold text-gold-400">
-              FrameCraft
+              Kala Bazaar
             </Link>
             <p className="mt-4 text-sm text-charcoal-500 dark:text-cream-400 leading-relaxed">
               {t("tagline")}
             </p>
-            <p className="mt-3 inline-flex items-center gap-1.5 text-[0.65rem] font-mono tracking-[0.15em] uppercase text-charcoal-400 dark:text-cream-500">
+            <p className="mt-3 inline-flex items-center gap-1.5 text-[0.7rem] font-mono tracking-[0.15em] uppercase text-charcoal-400 dark:text-cream-500">
               <span aria-hidden="true">🇳🇵</span>
               {t("handcraftedIn", { year: formatBsYear() })}
             </p>
@@ -124,7 +124,7 @@ export default function Footer() {
               {t("quickLinks")}
             </h4>
             <ul className="space-y-3">
-              {navLinks.slice(0, 8).map((link) => (
+              {navLinks.map((link) => (
                 <li key={link.path}>
                   <Link
                     href={link.path}
@@ -137,29 +137,42 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Services */}
+          {/* Get started */}
           <div>
             <h4 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
-              {t("services")}
+              {t("getStarted")}
             </h4>
             <ul className="space-y-3">
-              {servicesList.map((service) => (
-                <li key={service}>
+              {helpList.map((item) => (
+                <li key={item.name}>
                   <Link
-                    href="/services"
+                    href={item.path}
                     className="text-sm text-charcoal-500 dark:text-cream-400 hover:text-gold-400 transition-colors"
                   >
-                    {service}
+                    {item.name}
                   </Link>
                 </li>
               ))}
             </ul>
+            <h4 className="mt-7 text-[0.65rem] font-mono tracking-[0.25em] uppercase text-charcoal-400 dark:text-cream-500 mb-3">
+              {t("paymentsTitle")}
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {payments.map((p) => (
+                <span
+                  key={p}
+                  className="px-2 py-1 text-[0.65rem] font-mono tracking-wider uppercase border border-charcoal-200 dark:border-cream-700/60 text-charcoal-500 dark:text-cream-400 rounded-sm"
+                >
+                  {p}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Contact Info */}
           <div>
             <h4 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
-              {t("visitUs")}
+              {t("support")}
             </h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
@@ -170,11 +183,11 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-3">
                 <Phone size={16} className="text-gold-500 flex-shrink-0" />
-                <span className="text-sm text-charcoal-500 dark:text-cream-400">+977 1-5531234</span>
+                <span className="text-sm text-charcoal-500 dark:text-cream-400">+977 9843082974</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail size={16} className="text-gold-500 flex-shrink-0" />
-                <span className="text-sm text-charcoal-500 dark:text-cream-400">hello@framecraft.com.np</span>
+                <span className="text-sm text-charcoal-500 dark:text-cream-400">namaste@kalabazaar.com.np</span>
               </li>
               <li className="flex items-start gap-3">
                 <Clock size={16} className="mt-0.5 text-gold-500 flex-shrink-0" />
@@ -189,12 +202,12 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-cream-200 dark:border-charcoal-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-charcoal-400 dark:text-cream-500">
             {t("rights", { year: new Date().getFullYear() })}
           </p>
           <div className="flex gap-6 text-xs text-charcoal-400 dark:text-cream-500">
-            <Link href="/admin" className="hover:text-gold-400 transition-colors">{t("studioAdmin")}</Link>
+            <Link href="/admin" className="hover:text-gold-400 transition-colors">{t("adminLink")}</Link>
             <a href="#" className="hover:text-gold-400 transition-colors">{t("privacy")}</a>
             <a href="#" className="hover:text-gold-400 transition-colors">{t("terms")}</a>
           </div>

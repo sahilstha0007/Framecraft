@@ -190,7 +190,7 @@ export const paymentsRoutes = new Elysia()
       new Response(null, {
         status: 302,
         headers: {
-          Location: `${config.frontendOrigin}/checkout?status=${status}${orderId ? `&order=${orderId}` : ""}`,
+          Location: `${config.frontendOrigins[0]}/checkout?status=${status}${orderId ? `&order=${orderId}` : ""}`,
         },
       });
     if (!pidx) return redirect("failed");
@@ -207,7 +207,7 @@ export const paymentsRoutes = new Elysia()
       new Response(null, {
         status: 302,
         headers: {
-          Location: `${config.frontendOrigin}/checkout?status=${status}${orderId ? `&order=${orderId}` : ""}`,
+          Location: `${config.frontendOrigins[0]}/checkout?status=${status}${orderId ? `&order=${orderId}` : ""}`,
         },
       });
     const data = String(query.data ?? "");

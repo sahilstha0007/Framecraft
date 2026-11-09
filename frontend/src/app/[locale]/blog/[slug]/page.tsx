@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
   const post = await fetchPost(slug);
-  const title = post ? `${post.title} | FrameCraft` : t("title");
+  const title = post ? `${post.title} | Kala Bazaar` : t("title");
   const description = (post?.excerpt ?? t("description")).slice(0, 160);
   return {
     title,

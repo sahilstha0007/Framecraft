@@ -20,6 +20,7 @@ import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import CartDrawer from "@/components/CartDrawer";
 import LenisProvider from "@/components/LenisProvider";
+import Preloader from "@/components/Preloader";
 import ThemeProvider from "@/components/ThemeProvider";
 import { CartProvider } from "@/lib/cart";
 import { routing } from "@/i18n/routing";
@@ -80,13 +81,15 @@ export async function generateMetadata({
     title: t("title"),
     description: t("description"),
     keywords: [
-      "custom framing",
-      "picture frames",
-      "art framing studio",
-      "museum framing",
-      "frame conservation",
-      "FrameCraft",
-      "framing studio",
+      "Nepali art",
+      "Nepal art marketplace",
+      "thangka",
+      "paubha",
+      "mithila art",
+      "buy art Nepal",
+      "art auction Nepal",
+      "Nepali artists",
+      "Kala Bazaar",
     ],
     alternates: {
       canonical: `${SITE_URL}/${locale}`,
@@ -100,13 +103,13 @@ export async function generateMetadata({
       description: t("description"),
       type: "website",
       locale: locale === "ne" ? "ne_NP" : "en_US",
-      siteName: "FrameCraft",
+      siteName: "Kala Bazaar",
       images: [
         {
-          url: "https://images.unsplash.com/photo-1582053628662-c65b0e0544e9?w=1200&q=80",
+          url: "/art/thangka.jpg",
           width: 1200,
           height: 800,
-          alt: "FrameCraft — custom framing studio, Kathmandu",
+          alt: "Kala Bazaar — Nepal's art marketplace",
         },
       ],
     },
@@ -136,12 +139,11 @@ export default async function LocaleLayout({
     >
       <head>
         {/* Preconnect to external image and font origins */}
-        <link rel="preconnect" href="https://images.unsplash.com" />
         <link rel="preconnect" href="https://fonts.cdnfonts.com" />
         {/* Preload the LCP hero image (first gallery item, largest version) */}
         <link
           rel="preload"
-          href="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1920&q=85"
+          href="/art/boudhanath.jpg"
           as="image"
           fetchPriority="high"
         />
@@ -150,6 +152,9 @@ export default async function LocaleLayout({
         <JsonLd data={organizationJsonLd} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
+            {/* Branded once-per-session intro — inside the intl provider so
+                it can translate, and above everything while it plays */}
+            <Preloader />
             <CartProvider>
               <Navbar />
               <MotionConfig reducedMotion="user">

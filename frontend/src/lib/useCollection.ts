@@ -50,6 +50,7 @@ export function useCollection<T>(resource: string, fallback: T[]) {
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch signal; setState also happens in async callbacks
     setLoading(true);
     fetchCollection<T>(resource)
       .then((items) => {
