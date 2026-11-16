@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import NextImage from "next/image";
 import FrameCorner from "./FrameCorner";
+import { DriftWatermark } from "./ScrollReveal";
 import type { ReactNode } from "react";
 
 // Film-grain noise overlay shared with the hero — keeps the page entrances
@@ -51,6 +52,15 @@ export default function PageHeader({
 
       {/* Color grade + vignette */}
       <div className="absolute inset-0 bg-gradient-to-b from-cream-100/80 via-cream-100/88 to-cream-200 dark:from-[#1a1512]/80 dark:via-[#1a1512]/88 dark:to-[#0a0a08]" />
+
+      {/* Parallax: the eyebrow drifts slowly as the page scrolls, beneath the
+          title. Native + reduced-motion safe (DriftWatermark handles both). */}
+      <DriftWatermark
+        text={eyebrow}
+        className="absolute inset-0 opacity-60"
+        speed={0.25}
+        sizeClass="text-[16vw]"
+      />
 
       {/* Warm gold bloom from the top */}
       <div
