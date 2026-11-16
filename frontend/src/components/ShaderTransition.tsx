@@ -106,11 +106,18 @@ export default function ShaderTransition() {
   const lastPath = useRef("");
 
   useEffect(() => {
-    // A locale-only switch is just a text swap — no shader flash.
+    // A full locale reload remounts this component; the switcher leaves a
+    // one-shot flag so the destination still plays the wind transition.
+    let arrivedFromSwitch = false;
+    let localeOnly = false;
+    try {
+      arrivedFromSwitch = sessionStorage.getItem("kalabazaar-locale-switch") === "1";
+      if (arrivedFromSwitch) sessionStorage.removeItem("kalabazaar-locale-switch");
+    } catch {}
     const bare = (p: string) => p.replace(/^\/(en|ne)(?=\/|$)/, "") || "/";
-    const localeOnly = lastPath.current && bare(lastPath.current) === bare(pathname);
+    localeOnly = arrivedFromSwitch || Boolean(lastPath.current && bare(lastPath.current) === bare(pathname));
     lastPath.current = pathname;
-    if (reduce || first.current) {
+    if (reduce || (first.current && !localeOnly)) {
       first.current = false;
       return;
     }

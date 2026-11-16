@@ -31,6 +31,9 @@ export default function LanguageSwitcher() {
     // navigating so the destination never flashes the loading curtain.
     try {
       sessionStorage.setItem("kalabazaar-preloader-seen", "1");
+      // Tells the shader component (which remounts on a full locale reload)
+      // to play its gentle wind transition on the destination page.
+      sessionStorage.setItem("kalabazaar-locale-switch", "1");
       document.documentElement.classList.add("preloader-seen");
     } catch {}
     // Keep the old UI painted until the new locale is ready — text swaps in
