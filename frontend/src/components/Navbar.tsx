@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Menu, X, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -37,21 +37,32 @@ export default function Navbar() {
     restDelta: 0.001,
   });
 
+  // Anchor for direction detection. Using the *previous frame's* scroll value
+  // made the bar flip on every 1px jitter; a dead zone keeps it steady.
+  const hideAnchor = useRef(0);
+
   // Stable handler so framer-motion subscribes once instead of re-subscribing
   // on every scrolled/hidden state flip (scrollY and the setters never change).
-  const handleScroll = useCallback(
-    (y: number) => {
-      const prev = scrollY.getPrevious() ?? 0;
-      setScrolled(y > SCROLLED_AT);
-      if (y > HIDE_AT && y > prev) {
-        setHidden(true);
-        setIsOpen(false);
-      } else if (y <= HIDE_AT || y < prev) {
-        setHidden(false);
-      }
-    },
-    [scrollY]
-  );
+  const handleScroll = useCallback((y: number) => {
+    // Hysteresis on the morph threshold: shrink at 60px, unshrink at 20px.
+    setScrolled((was) => (was ? y > SCROLLED_AT - 20 : y > SCROLLED_AT + 20));
+
+    if (y <= HIDE_AT) {
+      setHidden(false);
+      hideAnchor.current = y;
+      return;
+    }
+    const delta = y - hideAnchor.current;
+    // Only change direction after a real 8px move, then re-anchor.
+    if (delta > 8) {
+      setHidden(true);
+      setIsOpen(false);
+      hideAnchor.current = y;
+    } else if (delta < -8) {
+      setHidden(false);
+      hideAnchor.current = y;
+    }
+  }, []);
 
   useMotionValueEvent(scrollY, "change", handleScroll);
 
@@ -91,7 +102,7 @@ export default function Navbar() {
           // not just ignore the mouse (pointer-events alone doesn't cover
           // keyboard focus on the translated-off-screen links).
           inert={hidden}
-          className={hidden ? "pointer-events-none" : ""}
+          className={`will-change-transform ${hidden ? "pointer-events-none" : ""}`}
         >
           {/* ── Glass pill ── */}
           <nav
