@@ -29,6 +29,10 @@ const API_PAYMENT_METHODS = [
   "Cash on Delivery",
 ] as const;
 
+/** Portfolio demo contact details — shown next to the payment methods. */
+const DEMO_PORTFOLIO = "https://sahiltuchheshrestha.com.np";
+const DEMO_EMAIL = "sahiltuchhe123@gmail.com";
+
 interface PlacedOrder {
   id: number;
   paymentMethod: string;
@@ -441,6 +445,30 @@ function CheckoutContent() {
                       </span>
                     </button>
                   ))}
+                </div>
+
+                {/* Honest note at the point where money looks real. */}
+                <div className="mt-5 border border-gold-400/30 bg-gold-400/[0.05] p-4 text-xs leading-relaxed text-charcoal-600 dark:text-white/60">
+                  <p className="font-medium text-charcoal-800 dark:text-white/80">
+                    {t("demoNoticeTitle")}
+                  </p>
+                  <p className="mt-1">{t("demoNoticeBody")}</p>
+                  <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <a
+                      href={DEMO_PORTFOLIO}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-gold-600 dark:text-gold-400 underline underline-offset-4 hover:opacity-70"
+                    >
+                      {t("demoPortfolio")}
+                    </a>
+                    <a
+                      href={`mailto:${DEMO_EMAIL}`}
+                      className="font-medium text-gold-600 dark:text-gold-400 underline underline-offset-4 hover:opacity-70"
+                    >
+                      {DEMO_EMAIL}
+                    </a>
+                  </p>
                 </div>
               </div>
             </div>

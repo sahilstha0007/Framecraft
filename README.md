@@ -2,6 +2,8 @@
 
 Nepal's online **art marketplace & social platform**: buy, bid and follow Nepali artists. A monorepo with a **Next.js frontend** and an **Elysia (Bun) REST API backend** on **PostgreSQL** (via built-in `Bun.sql`).
 
+> **Portfolio demo notice:** This is a project build, not a live store. Payment gateways run in sandbox mode — no real money is charged and no orders are fulfilled. Interested in the project? See [the portfolio](https://sahiltuchheshrestha.com.np) or email [sahiltuchhe123@gmail.com](mailto:sahiltuchhe123@gmail.com).
+
 ## Structure
 
 ```
