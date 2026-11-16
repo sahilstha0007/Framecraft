@@ -242,6 +242,17 @@ export default function Navbar() {
             />
           </nav>
 
+          {/* Dim + blur the page behind the open mobile menu so the panel reads
+              as a separate layer instead of floating on top of the content. */}
+          {isOpen && (
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={() => setIsOpen(false)}
+              className="pointer-events-auto fixed inset-0 z-[1] bg-black/25 backdrop-blur-md xl:hidden"
+            />
+          )}
+
           {/* ── Mobile Menu Dropdown (glass panel) ── */}
         <AnimatePresence>
           {isOpen && (
@@ -250,7 +261,7 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0, scaleY: 1 }}
               exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="mt-2 glass-nav rounded-2xl pointer-events-auto origin-top max-h-[80dvh] overflow-y-auto overflow-x-hidden"
+              className="relative z-10 mt-2 glass-nav rounded-2xl pointer-events-auto origin-top max-h-[80dvh] overflow-y-auto overflow-x-hidden"
             >
               <div className="px-2 py-3 space-y-0.5">
                 {navLinks.map((link) => (
