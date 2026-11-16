@@ -445,6 +445,16 @@ html.lenis body {
   overscroll-behavior: contain;
 }
 
+/* ── Continuous word-band scroll ──
+   The outer layer follows the scrollbar (parallax); this inner layer keeps
+   drifting so the band never sits still. Four identical token sets are
+   rendered, so -25% is exactly one seamless loop. */
+@keyframes kala-marquee {
+  to { transform: translateX(-25%); }
+}
+.marquee-ltr { animation: kala-marquee 42s linear infinite; }
+.marquee-rtl { animation: kala-marquee 58s linear infinite reverse; }
+
 /* Selection */
 ::selection {
   background: var(--color-gold-300);

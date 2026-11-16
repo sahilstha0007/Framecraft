@@ -87,31 +87,35 @@ function WordRow({ words, reverse = false, x }: WordRowProps) {
       className="flex items-center whitespace-nowrap will-change-transform"
       aria-hidden="true"
     >
-      {tokens.map((word, i) => (
-        <span
-          key={`${word}-${i}`}
-          className="inline-flex items-center gap-10 sm:gap-16 font-heading italic text-6xl sm:text-7xl lg:text-8xl leading-none tracking-tight select-none"
-        >
+      {/* Inner row loops forever at its own speed; the outer motion.div still
+          adds scroll-linked parallax on top. Reduced motion freezes both. */}
+      <div className={`flex items-center ${reverse ? "marquee-rtl" : "marquee-ltr"}`}>
+        {tokens.map((word, i) => (
           <span
-            className={
-              i % 2 === 1
-                ? "text-transparent"
-                : "text-charcoal-900/90 dark:text-white/90"
-            }
-            style={
-              i % 2 === 1
-                ? { WebkitTextStroke: "1.5px rgba(212,168,56,0.45)" }
-                : undefined
-            }
+            key={`${word}-${i}`}
+            className="inline-flex items-center gap-10 sm:gap-16 font-heading italic text-6xl sm:text-7xl lg:text-8xl leading-none tracking-tight select-none"
           >
-            {word}
+            <span
+              className={
+                i % 2 === 1
+                  ? "text-transparent"
+                  : "text-charcoal-900/90 dark:text-white/90"
+              }
+              style={
+                i % 2 === 1
+                  ? { WebkitTextStroke: "1.5px rgba(212,168,56,0.45)" }
+                  : undefined
+              }
+            >
+              {word}
+            </span>
+            <span
+              className="w-2 h-2 rotate-45 bg-gold-400/30 flex-shrink-0"
+              aria-hidden="true"
+            />
           </span>
-          <span
-            className="w-2 h-2 rotate-45 bg-gold-400/30 flex-shrink-0"
-            aria-hidden="true"
-          />
-        </span>
-      ))}
+        ))}
+      </div>
     </motion.div>
   );
 }
