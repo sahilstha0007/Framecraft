@@ -310,7 +310,7 @@ export const ordersRoutes = new Elysia({ prefix: "/api" })
           if (body.status && existing[0]?.phone) {
             await sendWhatsApp(
               existing[0].phone,
-              `FrameCraft: your order #${params.id} is now ${body.status}. Track it at framecraft.com.np/account`
+              `Kala Bazaar: your order #${params.id} is now ${body.status}. Track it at framecraft.com.np/account`
             );
           }
           return { success: true, id: params.id };

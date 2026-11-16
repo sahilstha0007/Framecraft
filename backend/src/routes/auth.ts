@@ -43,13 +43,14 @@ export function readCookie(req: Request, name: string): string | null {
 
 function sessionCookie(token: string): string {
   const maxAge = config.sessionTtlDays * 86400;
-  const secure = config.secureCookies ? "; Secure" : "";
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
+  // SameSite=None is rejected without Secure, so force it in that mode.
+  const secure = config.secureCookies || config.sessionSameSite === "None" ? "; Secure" : "";
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=${config.sessionSameSite}; Max-Age=${maxAge}${secure}`;
 }
 
 function clearSessionCookie(): string {
-  const secure = config.secureCookies ? "; Secure" : "";
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
+  const secure = config.secureCookies || config.sessionSameSite === "None" ? "; Secure" : "";
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=${config.sessionSameSite}; Max-Age=0${secure}`;
 }
 
 /* ── session helpers ────────────────────────────────────────────────────── */

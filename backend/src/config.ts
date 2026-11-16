@@ -24,6 +24,17 @@ export const config = {
   sessionTtlDays: Number(process.env.SESSION_TTL_DAYS ?? 30),
   /** Mark the session cookie Secure — on automatically for production. */
   secureCookies: process.env.NODE_ENV === "production",
+  /**
+   * SameSite for the session cookie. Use "None" when the frontend and API are
+   * on different sites (e.g. vercel.app + onrender.com) — "Lax" cookies are not
+   * sent on cross-site fetch, which silently breaks login. Browsers require
+   * Secure alongside None (handled in auth.ts).
+   */
+  sessionSameSite: ["Lax", "None", "Strict"].includes(
+    (process.env.SESSION_SAMESITE ?? "Lax").trim()
+  )
+    ? (process.env.SESSION_SAMESITE ?? "Lax").trim()
+    : "Lax",
 
   /* ── Nepali payment gateways (sandbox-first) ──────────────────────────────
    * Khalti:   live secret from dev.khalti.com merchant panel (sandbox).
@@ -31,7 +42,13 @@ export const config = {
    * Set the live keys in the environment to go production — the code paths
    * switch automatically via the *_API variables below.
    */
-  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:3001",
+  // Render injects RENDER_EXTERNAL_HOSTNAME — derive the callback base from it
+  // so payment return URLs work without a manual env var.
+  publicBaseUrl:
+    process.env.PUBLIC_BASE_URL ??
+    (process.env.RENDER_EXTERNAL_HOSTNAME
+      ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+      : "http://localhost:3001"),
   khaltiSecret: process.env.KHALTI_SECRET_KEY ?? "",
   khaltiApi: process.env.KHALTI_API ?? "https://dev.khalti.com/api/v2",
   esewaSecret: process.env.ESEWA_SECRET_KEY ?? "8gBm/:&EnhH.1/q",

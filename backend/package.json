@@ -1,7 +1,7 @@
 {
-  "name": "framecraft-backend",
+  "name": "kalabazaar-backend",
   "version": "1.0.0",
-  "description": "FrameCraft REST API - Elysia on Bun with PostgreSQL (Bun.sql)",
+  "description": "Kala Bazaar REST API - Elysia on Bun with PostgreSQL (Bun.sql)",
   "type": "module",
   "private": true,
   "scripts": {

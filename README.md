@@ -106,3 +106,7 @@ podman-compose -f podman-compose.yaml exec backend bun run seed   # reseed demo 
 podman-compose -f podman-compose.yaml down              # stop (data persists)
 podman-compose -f podman-compose.yaml down -v           # stop + wipe the database
 ```
+
+## Hosting on free tiers
+
+See [`DEPLOY.md`](DEPLOY.md) for a complete Vercel (frontend) + Render (API) + Neon (Postgres) walkthrough, including the `render.yaml` blueprint and the cross-site cookie/CORS settings it needs.

@@ -414,7 +414,7 @@ export const sellerRoutes = new Elysia()
           if (body.status && rows[0].phone) {
             await sendWhatsApp(
               rows[0].phone,
-              `FrameCraft: your order #${params.id} is now ${body.status}. Track it at framecraft.com.np/account`
+              `Kala Bazaar: your order #${params.id} is now ${body.status}. Track it at framecraft.com.np/account`
             );
           }
           return { success: true, id: params.id };

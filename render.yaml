@@ -1,0 +1,42 @@
+# Kala Bazaar API — Render Blueprint (free tier).
+# Dashboard → New → Blueprint → point at this repo. Frontend is deployed
+# separately on Vercel; Postgres is Neon's permanent free tier (Render's own
+# free Postgres expires after 30 days).
+services:
+  - type: web
+    name: kalabazaar-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Containerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      # Public build args are baked into the frontend on Vercel instead.
+      - key: PORT
+        value: 3001
+      # Cross-site auth: Vercel (*.vercel.app) → Render (*.onrender.com).
+      - key: SESSION_SAMESITE
+        value: None
+      # Neon pooled connection string, including ?sslmode=require.
+      - key: DATABASE_URL
+        sync: false
+      # Your Vercel deployment URL (exact origin, no trailing slash).
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # Any long random string; keep it to bootstrap the first admin.
+      - key: ADMIN_KEY
+        sync: false
+      # Optional: auto-create your seller account on first boot.
+      - key: SELLER_EMAIL
+        sync: false
+      - key: SELLER_PASSWORD
+        sync: false
+      # Public base URL for gateway callbacks defaults to RENDER_EXTERNAL_HOSTNAME.
+      # Set explicitly only if you use a custom domain.
+      - key: KHALTI_SECRET_KEY
+        sync: false
+      - key: ESEWA_SECRET_KEY
+        sync: false
+      - key: ESEWA_PRODUCT_CODE
+        sync: false

@@ -1,7 +1,7 @@
 {
-  "name": "framecraft-frontend",
+  "name": "kalabazaar-frontend",
   "version": "1.0.0",
-  "description": "FrameCraft - Premium Custom Framing Studio (Next.js frontend)",
+  "description": "Kala Bazaar - Nepali art marketplace (Next.js frontend)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

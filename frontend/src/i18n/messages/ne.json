@@ -248,6 +248,8 @@
     "empty": "तपाईंको कार्ट खाली छ।",
     "continueShopping": "किनमेल जारी राख्नुहोस्",
     "remove": "हटाउनुहोस्",
+    "decreaseQuantity": "मात्रा घटाउनुहोस्",
+    "increaseQuantity": "मात्रा बढाउनुहोस्",
     "subtotal": "जम्मा",
     "checkout": "चेकआउट"
   },

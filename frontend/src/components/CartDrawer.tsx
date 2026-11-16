@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -12,6 +13,15 @@ export default function CartDrawer() {
   const t = useTranslations("cart");
   const locale = useLocale();
   const { items, count, subtotal, setQuantity, remove, open, setOpen } = useCart();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, setOpen]);
 
   return (
     <AnimatePresence>
@@ -30,6 +40,7 @@ export default function CartDrawer() {
           {/* Panel */}
           <motion.aside
             role="dialog"
+            aria-modal="true"
             aria-label={t("title")}
             className="fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-cream-50 dark:bg-[#0c0a08] border-l border-charcoal-200/60 dark:border-white/[0.08] flex flex-col"
             initial={{ x: "100%" }}
@@ -96,7 +107,7 @@ export default function CartDrawer() {
                           <button
                             onClick={() => setQuantity(item.productId, item.quantity - 1)}
                             className="p-2.5 text-charcoal-500 hover:text-gold-600 dark:text-white/50 dark:hover:text-gold-300 transition-colors"
-                            aria-label="-"
+                            aria-label={t("decreaseQuantity")}
                           >
                             <Minus size={13} />
                           </button>
@@ -106,7 +117,7 @@ export default function CartDrawer() {
                           <button
                             onClick={() => setQuantity(item.productId, item.quantity + 1)}
                             className="p-2.5 text-charcoal-500 hover:text-gold-600 dark:text-white/50 dark:hover:text-gold-300 transition-colors"
-                            aria-label="+"
+                            aria-label={t("increaseQuantity")}
                           >
                             <Plus size={13} />
                           </button>

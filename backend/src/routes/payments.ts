@@ -31,7 +31,7 @@ async function khaltiInitiate(order: Record<string, unknown>, amountNpr: number)
       website_url: config.publicBaseUrl,
       amount: Math.round(amountNpr * 100), // paisa
       purchase_order_id: `ORDER_${order.id}`,
-      purchase_order_name: `FrameCraft order #${order.id}`,
+      purchase_order_name: `Kala Bazaar order #${order.id}`,
       customer_info: {
         name: order.customer_name,
         email: order.email,

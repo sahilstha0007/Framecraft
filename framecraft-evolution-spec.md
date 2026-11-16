@@ -2,7 +2,7 @@
 
 > **Request:** Loop **/plan → implement → /review** ten times. Each loop makes the product more exciting (new features), continuously improves **metadata/SEO**, and adds the **best data tracking**. Everything (frontend, backend, PostgreSQL) runs via **Podman** (compose YAML). New features first; SEO and analytics get dedicated phases.
 
-**Status:** Spec only — no code changes made yet.
+**Status:** Complete — all 10 loops shipped (see `loop-log.md`). This document is the original plan, kept for reference.
 **Date:** 2026-08-10
 **Author:** Buffy (via 6-round structured interview with the user)
 

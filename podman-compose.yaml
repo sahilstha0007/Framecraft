@@ -1,4 +1,4 @@
-# FrameCraft — full stack via Podman
+# Kala Bazaar — full stack via Podman
 #
 #   podman-compose -f podman-compose.yaml up --build -d
 #   podman-compose -f podman-compose.yaml ps

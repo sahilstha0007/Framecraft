@@ -68,15 +68,6 @@ export const reviewsRoutes = new Elysia()
             set.status = 400;
             return { error: "You cannot review your own product" };
           }
-          if (product[0].seller_id && product[0].seller_id !== user.id) {
-            await notify(
-              product[0].seller_id,
-              "review_received",
-              `“${product[0].name}” got a ${body.rating}-star review`,
-              body.body ? body.body.slice(0, 140) : undefined,
-              `/products/${params.id}`
-            );
-          }
           let inserted: { id: number }[];
           try {
             inserted = await all<{ id: number }>(
@@ -97,6 +88,15 @@ export const reviewsRoutes = new Elysia()
               return { error: "You have already reviewed this product" };
             }
             throw err;
+          }
+          if (product[0].seller_id && product[0].seller_id !== user.id) {
+            await notify(
+              product[0].seller_id,
+              "review_received",
+              `“${product[0].name}” got a ${body.rating}-star review`,
+              body.body ? body.body.slice(0, 140) : undefined,
+              `/products/${params.id}`
+            );
           }
           set.status = 201;
           const rows = await all(

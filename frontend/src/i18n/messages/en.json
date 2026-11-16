@@ -248,6 +248,8 @@
     "empty": "Your cart is empty.",
     "continueShopping": "Continue shopping",
     "remove": "Remove",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
     "subtotal": "Subtotal",
     "checkout": "Checkout"
   },

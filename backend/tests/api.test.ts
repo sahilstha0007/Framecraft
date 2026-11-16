@@ -321,3 +321,47 @@ describe("rate limiting", () => {
     expect(saw429).toBe(true);
   });
 });
+
+/* ── Reviews ──────────────────────────────────────────────────────────────── */
+
+describe("reviews", () => {
+  test("a rejected duplicate review does not notify the seller", async () => {
+    const seller = await api("POST", "/api/auth/register", {
+      body: {
+        name: "Review Seller",
+        email: `review.seller.${RUN}@test.kalabazaar`,
+        password: "s3cretPass!",
+        role: "seller",
+        shopName: "Review Shop",
+      },
+    });
+    expect(seller.status).toBeLessThan(400);
+    const sellerCookie = sessionFrom(seller.setCookie);
+    const me = await api("GET", "/api/auth/me", { cookie: sellerCookie });
+    const sellerId = (me.body as any).user.id;
+
+    await makeProduct(9201);
+    await sql(`UPDATE products SET seller_id = ${sellerId} WHERE id = 9201`);
+
+    const { cookie } = await makeUser("review.buyer");
+    const first = await api("POST", "/api/products/9201/reviews", {
+      cookie,
+      body: { rating: 5, body: "Lovely work" },
+    });
+    expect(first.status).toBe(201);
+    const duplicate = await api("POST", "/api/products/9201/reviews", {
+      cookie,
+      body: { rating: 3 },
+    });
+    expect(duplicate.status).toBe(409);
+
+    const alerts = Number(
+      await sql(
+        `SELECT count(*) FROM notifications
+         WHERE user_id = ${sellerId} AND type = 'review_received'
+           AND link = '/products/9201'`
+      )
+    );
+    expect(alerts).toBe(1);
+  });
+});

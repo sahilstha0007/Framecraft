@@ -27,6 +27,12 @@ export default function ThemeProvider(props: ThemeProviderProps) {
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
+      // Next 16 / React 19 warn about <script> tags rendered during client
+      // renders. The theme script must run on the initial HTML parse, then be
+      // inert after hydration (next-themes applies the theme via its effects).
+      scriptProps={{
+        type: typeof window === "undefined" ? "text/javascript" : "text/plain",
+      }}
       {...props}
     />
   );

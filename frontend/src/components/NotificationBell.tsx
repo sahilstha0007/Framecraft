@@ -70,6 +70,16 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
+  // Escape closes the popover like any other menu surface.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   const markAll = async () => {
     await api.put("/api/me/notifications/read-all", {}).catch(() => {});
     setUnread(0);
