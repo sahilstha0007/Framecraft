@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import FrameCorner from "./FrameCorner";
@@ -16,13 +16,17 @@ const STORAGE_KEY = "kalabazaar-preloader-seen";
 const SHOW_MS = 1650; // how long the panel stays before the curtain lift
 const LIFT_S = 0.9;   // curtain exit duration
 
+// Flip to "done" before paint on the client (locale switches remount this
+// component). useEffect would let one curtain frame flash on every switch.
+const useBeforePaint = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export default function Preloader() {
   const t = useTranslations("preloader");
   // Start as "show" so the curtain exists in the very first painted HTML.
   // "init" made the landing flash for a frame before hydration flipped it.
   const [stage, setStage] = useState<"show" | "exit" | "done">("show");
 
-  useEffect(() => {
+  useBeforePaint(() => {
     if (typeof window === "undefined") return;
     if (sessionStorage.getItem(STORAGE_KEY)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- external store (sessionStorage) read on mount; guards the once-per-session intro
