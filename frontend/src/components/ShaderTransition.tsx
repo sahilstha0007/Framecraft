@@ -110,7 +110,7 @@ export default function ShaderTransition() {
     const bare = (p: string) => p.replace(/^\/(en|ne)(?=\/|$)/, "") || "/";
     const localeOnly = lastPath.current && bare(lastPath.current) === bare(pathname);
     lastPath.current = pathname;
-    if (reduce || first.current || localeOnly) {
+    if (reduce || first.current) {
       first.current = false;
       return;
     }
@@ -121,7 +121,9 @@ export default function ShaderTransition() {
 
     const program = gl.createProgram()!;
     gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX));
-    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragment(shaderFor(pathname))));
+    // A language switch is a text swap, so use the gentlest wind wipe for it.
+    const shader = localeOnly ? SHADERS.wind : shaderFor(pathname);
+    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragment(shader)));
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
     gl.useProgram(program);
