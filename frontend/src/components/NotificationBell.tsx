@@ -121,7 +121,7 @@ export default function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute right-0 mt-2 w-80 sm:w-96 glass-nav rounded-2xl overflow-hidden shadow-xl shadow-black/10 z-50"
+            className="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] glass-nav rounded-2xl overflow-hidden shadow-xl shadow-black/10 z-50"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <p className="text-[0.7rem] font-mono tracking-[0.2em] uppercase text-charcoal-500 dark:text-white/50">

@@ -44,16 +44,16 @@ export default function LenisProvider({ children }: { children: ReactNode }) {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const instance = new Lenis({
-      duration: 1.6,
+      // Shorter duration = snappier, lighter feel. Long easing makes the page
+      // feel like it is dragging behind the wheel.
+      duration: 1.1,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
-      // Smooth only wheel input — touch/native fallback stays browser-driven
-      // so mobile scrolling never fights the page.
+      // Wheel smoothing only. Touch stays fully native — intercepting touch
+      // (syncTouch) is what causes the heavy, fighting scroll on phones.
       smoothWheel: !prefersReducedMotion,
-      // Touch smoothing is also motion — leave it native for reduced-motion users.
-      syncTouch: !prefersReducedMotion,
-      touchMultiplier: 1.35,
-      wheelMultiplier: 0.9,
+      syncTouch: false,
+      wheelMultiplier: 1,
       // Intercept in-page anchor links (#id) and glide to them.
       anchors: true,
     });

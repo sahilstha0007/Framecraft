@@ -63,7 +63,7 @@ export default function CartDrawer() {
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-2 text-charcoal-500 hover:text-charcoal-900 dark:text-white/40 dark:hover:text-white transition-colors"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal-500 hover:text-charcoal-900 dark:text-white/40 dark:hover:text-white transition-colors"
                 aria-label={t("close")}
               >
                 <X size={18} />
@@ -106,7 +106,7 @@ export default function CartDrawer() {
                         <div className="flex items-center border border-charcoal-200 dark:border-white/10">
                           <button
                             onClick={() => setQuantity(item.productId, item.quantity - 1)}
-                            className="p-2.5 text-charcoal-500 hover:text-gold-600 dark:text-white/50 dark:hover:text-gold-300 transition-colors"
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal-500 hover:text-gold-600 dark:text-white/50 dark:hover:text-gold-300 transition-colors"
                             aria-label={t("decreaseQuantity")}
                           >
                             <Minus size={13} />
@@ -116,7 +116,7 @@ export default function CartDrawer() {
                           </span>
                           <button
                             onClick={() => setQuantity(item.productId, item.quantity + 1)}
-                            className="p-2.5 text-charcoal-500 hover:text-gold-600 dark:text-white/50 dark:hover:text-gold-300 transition-colors"
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal-500 hover:text-gold-600 dark:text-white/50 dark:hover:text-gold-300 transition-colors"
                             aria-label={t("increaseQuantity")}
                           >
                             <Plus size={13} />

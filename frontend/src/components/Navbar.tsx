@@ -68,7 +68,7 @@ export default function Navbar() {
   const cartButton = (
     <button
       onClick={() => setCartOpen(true)}
-      className="relative p-2 text-charcoal-600/70 dark:text-white/60 hover:text-gold-600 dark:hover:text-gold-400 transition-colors cursor-pointer"
+      className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal-600/70 dark:text-white/60 hover:text-gold-600 dark:hover:text-gold-400 transition-colors cursor-pointer"
       aria-label="Cart"
     >
       <ShoppingBag size={18} />
@@ -194,14 +194,14 @@ export default function Navbar() {
             </div>
 
             {/* Mobile Controls */}
-            <div className="flex items-center gap-1.5 xl:hidden shrink-0">
+            <div className="flex items-center gap-0.5 sm:gap-1.5 xl:hidden shrink-0">
               <LanguageSwitcher />
               <ThemeToggle />
               <NotificationBell />
               {cartButton}
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-2 text-charcoal-600/70 dark:text-white/60 hover:text-gold-600 dark:hover:text-gold-400 transition-colors"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal-600/70 dark:text-white/60 hover:text-gold-600 dark:hover:text-gold-400 transition-colors"
                 aria-label={t("toggleMenu")}
               >
                 {isOpen ? <X size={22} /> : <Menu size={22} />}

@@ -6,9 +6,9 @@ import { motion } from "framer-motion";
 
 type LocaleCode = "en" | "ne";
 
-const OPTIONS: Array<{ code: LocaleCode; label: string }> = [
-  { code: "en", label: "EN" },
-  { code: "ne", label: "नेपाली" },
+const OPTIONS: Array<{ code: LocaleCode; label: string; short: string }> = [
+  { code: "en", label: "EN", short: "EN" },
+  { code: "ne", label: "नेपाली", short: "ने" },
 ];
 
 /**
@@ -33,7 +33,7 @@ export default function LanguageSwitcher() {
     <div
       role="group"
       aria-label={t("switchLanguage")}
-      className="relative grid grid-cols-2 w-[136px] h-9 shrink-0 rounded-full border border-charcoal-200/80 dark:border-white/15 bg-white/40 dark:bg-white/[0.04] p-1"
+      className="relative grid grid-cols-2 w-[104px] sm:w-[136px] h-10 sm:h-9 shrink-0 rounded-full border border-charcoal-200/80 dark:border-white/15 bg-white/40 dark:bg-white/[0.04] p-1"
     >
       {/* Sliding active highlight */}        <motion.span
           aria-hidden="true"
@@ -53,13 +53,14 @@ export default function LanguageSwitcher() {
             aria-pressed={isActive}
             aria-label={opt.code === "en" ? t("english") : t("nepali")}
             title={opt.code === "en" ? t("english") : t("nepali")}
-            className={`relative z-10 flex items-center justify-center h-7 rounded-full text-[0.7rem] font-semibold tracking-wide whitespace-nowrap select-none transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400 ${
+            className={`relative z-10 flex items-center justify-center h-8 sm:h-7 rounded-full text-[0.65rem] sm:text-[0.7rem] font-semibold tracking-wide whitespace-nowrap select-none transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400 ${
               isActive
                 ? "text-white"
                 : "text-charcoal-600/70 dark:text-white/60 hover:text-gold-600 dark:hover:text-gold-400"
             }`}
           >
-            {opt.label}
+            <span className="sm:hidden">{opt.short}</span>
+            <span className="hidden sm:inline">{opt.label}</span>
           </button>
         );
       })}

@@ -51,7 +51,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={cycle}
-      className="relative p-2 rounded-full text-charcoal-600 dark:text-cream-300 hover:text-gold-600 dark:hover:text-gold-400 transition-colors cursor-pointer
+      className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-charcoal-600 dark:text-cream-300 hover:text-gold-600 dark:hover:text-gold-400 transition-colors cursor-pointer
         focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold-400"
       aria-label={label}
       title={label}
