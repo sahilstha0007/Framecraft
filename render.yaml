@@ -7,7 +7,7 @@ services:
     name: kalabazaar-api
     runtime: docker
     plan: free
-    region: singapore
+    region: ohio
     dockerfilePath: ./backend/Containerfile
     dockerContext: ./backend
     healthCheckPath: /api/health
