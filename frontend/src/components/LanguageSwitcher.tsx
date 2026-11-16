@@ -27,6 +27,12 @@ export default function LanguageSwitcher() {
 
   const switchTo = (code: LocaleCode) => {
     if (code === locale) return;
+    // The locale layout remounts the preloader. Mark the intro as seen before
+    // navigating so the destination never flashes the loading curtain.
+    try {
+      sessionStorage.setItem("kalabazaar-preloader-seen", "1");
+      document.documentElement.classList.add("preloader-seen");
+    } catch {}
     // Keep the old UI painted until the new locale is ready — text swaps in
     // place instead of flashing a half-rendered state.
     startTransition(() => router.replace(pathname, { locale: code }));
