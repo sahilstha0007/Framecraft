@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Gavel, MapPin } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import NextImage from "next/image";
@@ -9,6 +10,33 @@ import { formatNPR } from "@/lib/nepali";
 import { useCollection } from "@/lib/useCollection";
 import { useHydrated } from "@/lib/useHydrated";
 import type { ShopProduct } from "@/components/ProductCard";
+
+/** A stat that counts up to its target — the "completion pull" that rewards
+ *  the first viewport instead of showing every number at once. SSR renders 0
+ *  so hydration matches; the animation only starts after mount. */
+function CountUp({ to, suffix = "+" }: { to: number; suffix?: string }) {
+  const reduce = useReducedMotion();
+  const [n, setN] = useState(0);
+
+  useEffect(() => {
+    if (reduce) {
+      setN(to);
+      return;
+    }
+    let raf = 0;
+    let start = 0;
+    const step = (time: number) => {
+      if (!start) start = time;
+      const p = Math.min((time - start) / 1300, 1);
+      setN(Math.round((1 - Math.pow(1 - p, 3)) * to));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [to, reduce]);
+
+  return <span>{n}{suffix}</span>;
+}
 
 /* ── Floating artwork card ────────────────────────────────────────────────
    One live marketplace piece, lifted off the hero canvas. The card drifts
@@ -90,9 +118,12 @@ export default function HomeHero() {
     (label) => ({ label })
   );
 
-  const stats = [
-    { value: products.length ? `${Math.max(products.length, 12)}+` : "120+", label: t("heroStatArtworks") },
-    { value: "35+", label: t("heroStatArtists") },
+  const stats: Array<
+    | { value: number; suffix: string; label: string; accent?: boolean }
+    | { value: string; label: string; accent?: boolean }
+  > = [
+    { value: products.length ? Math.max(products.length, 12) : 120, suffix: "+", label: t("heroStatArtworks") },
+    { value: 35, suffix: "+", label: t("heroStatArtists") },
     { value: "LIVE", label: t("heroStatAuctions"), accent: true },
   ];
 
@@ -189,7 +220,13 @@ export default function HomeHero() {
                     s.accent ? "text-gold-400" : "text-white"
                   }`}
                 >
-                  {mounted || !s.accent ? s.value : "—"}
+                  {typeof s.value === "number" && "suffix" in s ? (
+                    <CountUp to={s.value} suffix={s.suffix} />
+                  ) : mounted ? (
+                    s.value
+                  ) : (
+                    "—"
+                  )}
                 </dd>
                 <dd className="mt-1 font-mono text-[0.6rem] tracking-tighter text-sm/normal uppercase text-white/40">
                   {s.label}
