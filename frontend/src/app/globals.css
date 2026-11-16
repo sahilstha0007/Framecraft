@@ -220,6 +220,11 @@ html[lang="ne"] body {
 }
 
 @layer base {
+  /* Sticky shop filters sit below the navbar. When the navbar tucks away on
+     scroll-down, drop the offset so nothing hangs in mid-air. */
+  :root { --sticky-top: 72px; }
+  html.nav-tucked { --sticky-top: 12px; }
+
   /* Native CSS smooth-scroll must stay OFF — Lenis drives scrolling
      programmatically and the two fight each other, causing jank. */
   html {

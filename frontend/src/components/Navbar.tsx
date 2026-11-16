@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Menu, X, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -69,6 +69,12 @@ export default function Navbar() {
   }, []);
 
   useMotionValueEvent(scrollY, "change", handleScroll);
+
+  // Tell sticky sections (shop filters) to drop their offset while tucked.
+  useEffect(() => {
+    document.documentElement.classList.toggle("nav-tucked", hidden);
+    return () => document.documentElement.classList.remove("nav-tucked");
+  }, [hidden]);
 
   // Locale-aware nav items — labels come from translations, paths from the
   // (unchanged) route map so links work under /en and /ne automatically.

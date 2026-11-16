@@ -157,7 +157,7 @@ function ShopBrowser() {
       />
 
       {/* Filters */}
-      <section className="sticky top-20 z-30 border-b border-charcoal-200/60 dark:border-white/[0.06] bg-cream-50/85 dark:bg-[#0a0a08]/85 backdrop-blur-md">
+      <section className="sticky top-[var(--sticky-top)] z-30 border-b border-charcoal-200/60 dark:border-white/[0.06] bg-cream-50/85 dark:bg-[#0a0a08]/85 backdrop-blur-md transition-[top] duration-300">
         <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto scrollbar-none">

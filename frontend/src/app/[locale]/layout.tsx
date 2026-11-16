@@ -26,6 +26,7 @@ import { CartProvider } from "@/lib/cart";
 import { routing } from "@/i18n/routing";
 import { SITE_URL, organizationJsonLd } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
+import ShaderTransition from "@/components/ShaderTransition";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -149,6 +150,7 @@ export default async function LocaleLayout({
         />
       </head>
       <body className="antialiased">
+        <ShaderTransition />
         <JsonLd data={organizationJsonLd} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
