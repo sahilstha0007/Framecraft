@@ -4,9 +4,10 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  // Standalone output for the containerized deployment (see Containerfile +
-  // podman-compose.yaml) — a self-contained server with no node_modules walk.
-  output: "standalone",
+  // Standalone output is for the container (Containerfile + podman-compose).
+  // Vercel needs the default .next layout — standalone removes the nft file
+  // its build step reads. Set NEXT_STANDALONE=1 only in the container build.
+  output: process.env.NEXT_STANDALONE === "1" ? "standalone" : undefined,
   experimental: {
     useTypeScriptCli: true,
   },
