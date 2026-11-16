@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 
@@ -104,7 +104,6 @@ export default function ShaderTransition() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const first = useRef(true);
   const lastPath = useRef("");
-  const [active, setActive] = useState(false);
 
   useEffect(() => {
     // A locale-only switch is just a text swap — no shader flash.
@@ -115,7 +114,6 @@ export default function ShaderTransition() {
       first.current = false;
       return;
     }
-    setActive(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const gl = canvas.getContext("webgl", { alpha: false, antialias: false });
@@ -148,18 +146,21 @@ export default function ShaderTransition() {
 
     let raf = 0;
     const start = performance.now();
-    const duration = 620;
+    const duration = 520;
     const draw = (now: number) => {
       const p = Math.min((now - start) / duration, 1);
       const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      // Fade the shader in/out so it never appears as a hard full-screen flash.
       gl.uniform1f(progressLoc, eased);
+      const edge = Math.min(1, p * 6, (1 - p) * 6);
+      canvas.style.opacity = String(0.28 * edge);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, from);
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, to);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       if (p < 1) raf = requestAnimationFrame(draw);
-      else setActive(false);
+      else canvas.style.opacity = "0";
     };
     raf = requestAnimationFrame(draw);
 
@@ -178,9 +179,7 @@ export default function ShaderTransition() {
       width={64}
       height={64}
       aria-hidden="true"
-      className={`pointer-events-none fixed inset-0 z-[100] h-screen w-screen mix-blend-screen transition-opacity duration-300 ${
-        active ? "opacity-80" : "opacity-0"
-      }`}
+      className="pointer-events-none fixed inset-0 z-[100] h-screen w-screen mix-blend-screen opacity-0"
     />
   );
 }
