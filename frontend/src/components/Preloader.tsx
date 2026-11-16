@@ -20,19 +20,27 @@ const LIFT_S = 0.9;   // curtain exit duration
 // component). useEffect would let one curtain frame flash on every switch.
 const useBeforePaint = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
+// Survives client-side locale switches (the locale layout remounts the
+// component, and Next rewrites <html className>, wiping CSS-only markers).
+let introPlayed = false;
+
 export default function Preloader() {
   const t = useTranslations("preloader");
-  // Start as "show" so the curtain exists in the very first painted HTML.
-  // "init" made the landing flash for a frame before hydration flipped it.
-  const [stage, setStage] = useState<"show" | "exit" | "done">("show");
+  // SSR and the first client render both see false → no hydration mismatch.
+  // On later mounts in this SPA the flag is already true → no curtain at all.
+  const [stage, setStage] = useState<"show" | "exit" | "done">(() =>
+    introPlayed ? "done" : "show"
+  );
 
   useBeforePaint(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(STORAGE_KEY)) {
+    if (introPlayed || sessionStorage.getItem(STORAGE_KEY)) {
+      introPlayed = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- external store (sessionStorage) read on mount; guards the once-per-session intro
       setStage("done");
       return;
     }
+    introPlayed = true;
     // Mark as seen immediately so the intro only plays once per session.
     sessionStorage.setItem(STORAGE_KEY, "1");
     setStage("show");
