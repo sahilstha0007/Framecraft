@@ -152,7 +152,7 @@ export default function Navbar() {
                   <span className="absolute -bottom-px left-3 right-3 h-0.5 scale-x-0 bg-gradient-to-r from-gold-500 to-gold-400 transition-transform duration-300 group-hover:scale-x-100 origin-center rounded-full" />
                 </Link>
               ))}
-              <div className="ml-1.5 xl:ml-2 flex items-center gap-1 xl:gap-1.5 shrink-0 xl:w-[560px] xl:justify-end">
+              <div className="ml-1.5 xl:ml-2 flex items-center gap-1 xl:gap-1.5 shrink-0 xl:w-[640px] xl:justify-end">
                 <LanguageSwitcher />
                 <ThemeToggle />
                 <NotificationBell />
