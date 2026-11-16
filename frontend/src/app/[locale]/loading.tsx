@@ -5,7 +5,7 @@
  */
 export default function Loading() {
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-cream-50 dark:bg-[#0a0a08]" role="status" aria-label="Loading">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0a0a08]" role="status" aria-label="Loading">
       <div className="relative px-12 py-10 sm:px-16 sm:py-12">
         {/* Animated frame corners */}
         <svg className="absolute inset-0 h-full w-full text-gold-400/50" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

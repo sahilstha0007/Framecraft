@@ -43,6 +43,7 @@ export default function LanguageSwitcher() {
 
   return (
     <div
+      data-language-switch
       role="group"
       aria-label={t("switchLanguage")}
       className="relative grid grid-cols-2 w-[104px] sm:w-[136px] h-10 sm:h-9 shrink-0 rounded-full border border-charcoal-200/80 dark:border-white/15 bg-white/40 dark:bg-white/[0.04] p-1"

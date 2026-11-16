@@ -17,7 +17,7 @@ export default function LogoParticles() {
         </span>
       </span>
       {/* Wordmark */}
-      <span className="font-heading text-xl sm:text-2xl font-semibold tracking-tight text-charcoal-800 dark:text-cream-100">
+      <span className="hidden min-[380px]:inline font-heading text-xl sm:text-2xl font-semibold tracking-tight text-charcoal-800 dark:text-cream-100">
         Kala<span className="text-gold-500 dark:text-gold-400">Bazaar</span>
       </span>
     </span>

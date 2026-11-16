@@ -79,7 +79,7 @@ export default function Preloader() {
           key="preloader"
           data-preloader
           aria-hidden="true"
-          className="fixed inset-0 z-[300] flex items-center justify-center overflow-hidden bg-cream-50 dark:bg-[#1a1512]"
+          className="fixed inset-0 z-[300] flex items-center justify-center overflow-hidden bg-[#1a1512]"
           exit={{ y: "-100%" }}
           transition={{ duration: LIFT_S, ease: [0.76, 0, 0.24, 1] }}
         >
@@ -108,7 +108,7 @@ export default function Preloader() {
             </motion.div>
 
             {/* Letter-by-letter wordmark reveal */}
-            <h1 className="flex font-heading text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-charcoal-900 dark:text-white">
+            <h1 className="flex font-heading text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-cream-100">
               {wordmark.split("").map((char, i) => (
                 <span key={i} className="inline-block overflow-hidden">
                   <motion.span

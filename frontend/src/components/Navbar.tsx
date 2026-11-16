@@ -100,7 +100,7 @@ export default function Navbar() {
             <div className="flex items-center justify-between h-full px-3 sm:px-5">
               <Link
                 href="/"
-                className={`flex items-center w-[118px] sm:w-[140px] xl:w-[170px] group shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`flex items-center w-[48px] min-[380px]:w-[118px] sm:w-[140px] xl:w-[170px] group shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   scrolled ? "scale-[0.9]" : "scale-100"
                 }`}
               >
@@ -112,7 +112,9 @@ export default function Navbar() {
               <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
                 <LanguageSwitcher />
                 <ThemeToggle />
-                <NotificationBell />
+                <span className="hidden min-[420px]:inline-flex">
+                  <NotificationBell />
+                </span>
                 {cartButton}
                 <button
                   onClick={() => setIsOpen(!isOpen)}

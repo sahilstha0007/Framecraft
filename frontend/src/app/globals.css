@@ -243,6 +243,11 @@ html[lang="ne"] body {
   .kala-corner:nth-child(4) { animation-delay: 0.6s; }
   .kala-loading-line { animation: kala-line-travel 1.4s ease-in-out infinite; }
 
+  /* Very narrow phones: language switcher loses its border and shrinks. */
+  @media (max-width: 379px) {
+    [data-language-switch] { width: 82px !important; }
+  }
+
   /* Native CSS smooth-scroll must stay OFF — Lenis drives scrolling
      programmatically and the two fight each other, causing jank. */
   html {
