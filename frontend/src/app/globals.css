@@ -228,6 +228,21 @@ html[lang="ne"] body {
   /* Set by the pre-paint script on repeat visits. */
   html.preloader-seen [data-preloader] { display: none !important; }
 
+  /* Route-loading screen: a quiet, premium shimmer instead of a blank page. */
+  @keyframes kala-corner-in {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+  }
+  @keyframes kala-line-travel {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+  .kala-corner { animation: kala-corner-in 1.6s ease-in-out infinite; }
+  .kala-corner:nth-child(2) { animation-delay: 0.2s; }
+  .kala-corner:nth-child(3) { animation-delay: 0.4s; }
+  .kala-corner:nth-child(4) { animation-delay: 0.6s; }
+  .kala-loading-line { animation: kala-line-travel 1.4s ease-in-out infinite; }
+
   /* Native CSS smooth-scroll must stay OFF — Lenis drives scrolling
      programmatically and the two fight each other, causing jank. */
   html {
