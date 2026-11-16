@@ -51,7 +51,7 @@ export default function LanguageSwitcher() {
       {/* Sliding active highlight */}        <motion.span
           aria-hidden="true"
           initial={false}
-          className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-gold-600 dark:bg-gold-500 shadow-sm shadow-gold-600/30"
+          className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-gold-600 shadow-sm shadow-gold-600/30"
           animate={{ x: activeIndex === 0 ? "0%" : "100%" }}
           transition={{ type: "spring", stiffness: 420, damping: 34 }}
         />

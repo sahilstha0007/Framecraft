@@ -79,6 +79,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
   return {
+    metadataBase: new URL(SITE_URL),
     title: t("title"),
     description: t("description"),
     keywords: [
@@ -107,9 +108,9 @@ export async function generateMetadata({
       siteName: "Kala Bazaar",
       images: [
         {
-          url: "/art/thangka.jpg",
-          width: 1200,
-          height: 800,
+          url: "/art/og-hero.jpg",
+          width: 1376,
+          height: 768,
           alt: "Kala Bazaar — Nepal's art marketplace",
         },
       ],

@@ -21,6 +21,7 @@
     "account": "Account"
   },
   "footer": {
+    "footerLabel": "Footer",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "scrollToTop": "Scroll to top",

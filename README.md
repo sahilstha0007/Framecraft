@@ -109,6 +109,8 @@ podman-compose -f podman-compose.yaml down              # stop (data persists)
 podman-compose -f podman-compose.yaml down -v           # stop + wipe the database
 ```
 
-## Hosting on free tiers
+## Hosting
 
-See [`DEPLOY.md`](DEPLOY.md) for a complete Vercel (frontend) + Render (API) + Neon (Postgres) walkthrough, including the `render.yaml` blueprint and the cross-site cookie/CORS settings it needs.
+- **API — live:** https://kalabazaar-api.onrender.com (Render free web service `kalabazaar-api`, defined by `render.yaml`; `/api/health` responds 200). Postgres is the Neon free tier via `DATABASE_URL`.
+- **Frontend — not deployed:** this repo has no linked Vercel project, and `framecraft.vercel.app` is an unrelated site. Follow [`DEPLOY.md`](DEPLOY.md) to publish the Next.js frontend (Vercel + Render + Neon, including the `render.yaml` blueprint and cross-site cookie/CORS settings).
+- Local full-stack development stays on `podman-compose.yaml`; the cloud setup does not change it.

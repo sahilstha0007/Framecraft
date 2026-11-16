@@ -20,8 +20,8 @@ function CountUp({ to, suffix = "+" }: { to: number; suffix?: string }) {
 
   useEffect(() => {
     if (reduce) {
-      setN(to);
-      return;
+      const raf = requestAnimationFrame(() => setN(to));
+      return () => cancelAnimationFrame(raf);
     }
     let raf = 0;
     let start = 0;
@@ -87,9 +87,9 @@ function HeroArtwork({
             <span className="font-mono text-[0.6rem] tracking-tighter text-sm/normal uppercase text-gold-400/80">
               {product.category}
             </span>
-            <h3 className="mt-1 text-sm font-heading font-semibold text-white leading-snug line-clamp-1">
+            <p className="mt-1 text-sm font-heading font-semibold text-white leading-snug line-clamp-1">
               {product.name}
-            </h3>
+            </p>
             <span className="mt-1 block font-heading text-base font-semibold text-gradient-gold">
               {formatNPR(product.auction ? (product.currentBid ?? product.startingBid ?? 0) : product.price, locale)}
             </span>

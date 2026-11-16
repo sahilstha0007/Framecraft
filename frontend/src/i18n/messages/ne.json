@@ -21,6 +21,7 @@
     "account": "मेरो खाता"
   },
   "footer": {
+    "footerLabel": "फुटर",
     "privacy": "गोपनीयता नीति",
     "terms": "सेवाका सर्तहरू",
     "scrollToTop": "माथि जानुहोस्",

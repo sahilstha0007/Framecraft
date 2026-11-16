@@ -36,7 +36,6 @@ export default function Preloader() {
     if (typeof window === "undefined") return;
     if (introPlayed || sessionStorage.getItem(STORAGE_KEY)) {
       introPlayed = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- external store (sessionStorage) read on mount; guards the once-per-session intro
       setStage("done");
       return;
     }

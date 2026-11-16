@@ -91,6 +91,7 @@ export default function Footer() {
 
       {/* Top section */}
       <div className="relative max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-16 lg:py-20">
+        <h2 className="sr-only">{t("footerLabel")}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
           {/* Brand */}
           <div>
@@ -120,9 +121,9 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
+            <h3 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
               {t("quickLinks")}
-            </h4>
+            </h3>
             <ul className="space-y-3">
               {navLinks.map((link) => (
                 <li key={link.path}>
@@ -139,9 +140,9 @@ export default function Footer() {
 
           {/* Get started */}
           <div>
-            <h4 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
+            <h3 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
               {t("getStarted")}
-            </h4>
+            </h3>
             <ul className="space-y-3">
               {helpList.map((item) => (
                 <li key={item.name}>
@@ -154,9 +155,9 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-            <h4 className="mt-7 text-[0.65rem] font-mono tracking-[0.25em] uppercase text-charcoal-400 dark:text-cream-500 mb-3">
+            <h3 className="mt-7 text-[0.65rem] font-mono tracking-[0.25em] uppercase text-charcoal-400 dark:text-cream-500 mb-3">
               {t("paymentsTitle")}
-            </h4>
+            </h3>
             <div className="flex flex-wrap gap-1.5">
               {payments.map((p) => (
                 <span
@@ -171,9 +172,9 @@ export default function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h4 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
+            <h3 className="text-sm font-medium tracking-wider uppercase text-charcoal-800 dark:text-cream-100 mb-5">
               {t("support")}
-            </h4>
+            </h3>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <MapPin size={16} className="mt-0.5 text-gold-500 flex-shrink-0" />
