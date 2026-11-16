@@ -139,6 +139,8 @@ export default async function LocaleLayout({
       className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} ${notoDevanagari.variable}`}
     >
       <head>
+        {/* First paint before CSS arrives: dark, never a white blank. */}
+        <style>{`html,body{background-color:#0a0a08}`}</style>
         {/* Runs before paint: repeat visits skip the curtain without a flash. */}
         <script
           dangerouslySetInnerHTML={{
