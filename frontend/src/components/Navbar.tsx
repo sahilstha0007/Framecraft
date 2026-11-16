@@ -123,6 +123,7 @@ export default function Navbar() {
               {/* Logo — scales down slightly as the pill tightens */}
               <Link
                 href="/"
+                style={{ width: 170 }}
                 className={`flex items-center group shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   scrolled ? "scale-[0.9]" : "scale-100"
                 }`}
