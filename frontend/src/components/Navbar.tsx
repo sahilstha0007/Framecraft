@@ -16,6 +16,10 @@ import { useCart } from "@/lib/cart";
 const SCROLLED_AT = 40; // pill starts shrinking + hairline fades in
 const HIDE_AT = 320; // never tuck away near the top of the page
 
+// Reserve each nav link's width for BOTH locales. Nepali labels are shorter
+// than English in this font, so without this the whole bar shifts on switch.
+const NAV_WIDTHS = [58, 54, 88, 82, 74];
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -128,11 +132,12 @@ export default function Navbar() {
 
             {/* Desktop Navigation */}
             <div className="hidden xl:flex items-center gap-0.5 min-w-0">
-              {navLinks.map((link) => (
+              {navLinks.map((link, i) => (
                 <Link
                   key={link.path}
                   href={link.path}
-                  className="relative px-1.5 xl:px-2 py-1.5 text-sm font-medium tracking-wide uppercase whitespace-nowrap
+                  style={{ width: NAV_WIDTHS[i] }}
+                  className="relative inline-flex items-center px-1.5 xl:px-2 py-1.5 text-sm font-medium tracking-wide uppercase whitespace-nowrap
                     text-charcoal-600/70 dark:text-white/60
                     hover:text-gold-600 dark:hover:text-gold-400
                     transition-colors duration-200 group shrink-0"
