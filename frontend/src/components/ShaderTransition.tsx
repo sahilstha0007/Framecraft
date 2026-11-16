@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 
 /**
- * Gold-leaf page transition. Uses gl-transitions' CrossWarp shader, inlined so
- * the 860KB transition index never enters the bundle. Two procedural gradient
- * textures (walnut ↔ gold) make the warp read as a polished metal sweep that
- * matches the Kala Bazaar identity. WebGL is optional — no WebGL, no overlay.
+ * Gold-leaf page transitions using a small selection of gl-transitions
+ * shaders, inlined so the 860KB package index never enters the bundle. Each
+ * destination gets its own motion, all tinted walnut ↔ gold to match Kala
+ * Bazaar. WebGL is optional — no WebGL, no overlay.
  */
 
 const VERTEX = `
@@ -19,34 +19,66 @@ void main() {
   gl_Position = vec4(a_pos, 0.0, 1.0);
 }`;
 
-const FRAGMENT = `
+const SHADERS: Record<string, string> = {
+  // gl-transitions: CrossWarp (MIT, Eke Péter)
+  warp: `vec4 transition(vec2 p) {
+    float x = smoothstep(0.0, 1.0, progress * 2.0 + p.x - 1.0);
+    return mix(getFromColor((p - 0.5) * (1.0 - x) + 0.5), getToColor((p - 0.5) * x + 0.5), x);
+  }`,
+  // gl-transitions: Wind (MIT, gre)
+  wind: `float rand(vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); }
+  vec4 transition(vec2 uv) {
+    float x = uv.x;
+    float r = rand(vec2(0, uv.y));
+    float m = smoothstep(0.0, -0.2, x * 0.8 + 0.2 * r - progress * 1.2);
+    return mix(getFromColor(uv), getToColor(uv), m);
+  }`,
+  // gl-transitions: WindowBlinds (MIT, gre)
+  blinds: `vec4 transition(vec2 uv) {
+    float t = progress;
+    if (mod(floor(uv.y * 100.0 * progress), 2.0) == 0.0) t *= 1.5;
+    return mix(getFromColor(uv), getToColor(uv), mix(t, progress, smoothstep(0.8, 1.0, progress)));
+  }`,
+  // gl-transitions: VerticalOpen (MIT, gre)
+  open: `vec4 transition(vec2 uv) {
+    float regress = 1.0 - progress;
+    float s = 2.0 - abs((uv.x - 0.5) / (regress - 1.0)) - 2.0 * regress;
+    return mix(getFromColor(uv), getToColor(uv), smoothstep(0.0, 0.5, s));
+  }`,
+  fade: `vec4 transition(vec2 uv) {
+    return mix(getFromColor(uv), getToColor(uv), progress);
+  }`,
+};
+
+function shaderFor(path: string) {
+  if (path.includes("/products")) return SHADERS.blinds;
+  if (path.includes("/blog")) return SHADERS.wind;
+  if (path.includes("/sellers")) return SHADERS.open;
+  if (path.includes("/shop")) return SHADERS.warp;
+  return SHADERS.fade;
+}
+
+function fragment(body: string) {
+  return `
 precision mediump float;
 uniform sampler2D from;
 uniform sampler2D to;
 uniform float progress;
 uniform float ratio;
 varying vec2 v_uv;
-
 vec4 getFromColor(vec2 uv) { return texture2D(from, uv); }
 vec4 getToColor(vec2 uv) { return texture2D(to, uv); }
-
-// gl-transitions: CrossWarp (MIT, Eke Péter)
-vec4 transition(vec2 p) {
-  float x = progress;
-  x = smoothstep(0.0, 1.0, (x * 2.0 + p.x - 1.0));
-  return mix(getFromColor((p - 0.5) * (1.0 - x) + 0.5), getToColor((p - 0.5) * x + 0.5), x);
-}
-
+${body}
 void main() { gl_FragColor = transition(v_uv); }
 `;
+}
 
 function gradientTexture(gl: WebGLRenderingContext, reverse: boolean) {
   const tex = gl.createTexture();
   const px = new Uint8Array(64 * 4);
   for (let i = 0; i < 64; i++) {
-    const t = i / 63;
-    const warm = reverse ? 1 - t : t;
-    px[i * 4 + 0] = Math.round(26 + warm * 187); // walnut → gold
+    const warm = reverse ? 1 - i / 63 : i / 63;
+    px[i * 4 + 0] = Math.round(26 + warm * 187);
     px[i * 4 + 1] = Math.round(21 + warm * 147);
     px[i * 4 + 2] = Math.round(18 + warm * 38);
     px[i * 4 + 3] = 255;
@@ -71,10 +103,15 @@ export default function ShaderTransition() {
   const reduce = useReducedMotion();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const first = useRef(true);
+  const lastPath = useRef("");
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    if (reduce || first.current) {
+    // A locale-only switch is just a text swap — no shader flash.
+    const bare = (p: string) => p.replace(/^\/(en|ne)(?=\/|$)/, "") || "/";
+    const localeOnly = lastPath.current && bare(lastPath.current) === bare(pathname);
+    lastPath.current = pathname;
+    if (reduce || first.current || localeOnly) {
       first.current = false;
       return;
     }
@@ -86,7 +123,7 @@ export default function ShaderTransition() {
 
     const program = gl.createProgram()!;
     gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX));
-    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAGMENT));
+    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragment(shaderFor(pathname))));
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
     gl.useProgram(program);

@@ -18,7 +18,9 @@ const LIFT_S = 0.9;   // curtain exit duration
 
 export default function Preloader() {
   const t = useTranslations("preloader");
-  const [stage, setStage] = useState<"init" | "show" | "exit" | "done">("init");
+  // Start as "show" so the curtain exists in the very first painted HTML.
+  // "init" made the landing flash for a frame before hydration flipped it.
+  const [stage, setStage] = useState<"show" | "exit" | "done">("show");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -63,6 +65,7 @@ export default function Preloader() {
       {stage === "show" && (
         <motion.div
           key="preloader"
+          data-preloader
           aria-hidden="true"
           className="fixed inset-0 z-[300] flex items-center justify-center overflow-hidden bg-cream-50 dark:bg-[#1a1512]"
           exit={{ y: "-100%" }}

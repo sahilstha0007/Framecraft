@@ -225,6 +225,9 @@ html[lang="ne"] body {
   :root { --sticky-top: 72px; }
   html.nav-tucked { --sticky-top: 12px; }
 
+  /* Set by the pre-paint script on repeat visits. */
+  html.preloader-seen [data-preloader] { display: none; }
+
   /* Native CSS smooth-scroll must stay OFF — Lenis drives scrolling
      programmatically and the two fight each other, causing jank. */
   html {

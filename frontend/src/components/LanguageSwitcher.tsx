@@ -1,5 +1,6 @@
 "use client";
 
+import { startTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { motion } from "framer-motion";
@@ -26,7 +27,9 @@ export default function LanguageSwitcher() {
 
   const switchTo = (code: LocaleCode) => {
     if (code === locale) return;
-    router.replace(pathname, { locale: code });
+    // Keep the old UI painted until the new locale is ready — text swaps in
+    // place instead of flashing a half-rendered state.
+    startTransition(() => router.replace(pathname, { locale: code }));
   };
 
   return (

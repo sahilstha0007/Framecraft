@@ -139,6 +139,12 @@ export default async function LocaleLayout({
       className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} ${notoDevanagari.variable}`}
     >
       <head>
+        {/* Runs before paint: repeat visits skip the curtain without a flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(sessionStorage.getItem('kalabazaar-preloader-seen'))document.documentElement.classList.add('preloader-seen')}catch(e){}`,
+          }}
+        />
         {/* Preconnect to external image and font origins */}
         <link rel="preconnect" href="https://fonts.cdnfonts.com" />
         {/* Preload the LCP hero image (first gallery item, largest version) */}
