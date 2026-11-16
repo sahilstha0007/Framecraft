@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "@/i18n/navigation";
+import { usePathname } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 
 /**
